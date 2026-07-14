@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarginSense - Unified Radiotherapy Planning Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #030308;
+            --panel-bg: rgba(10, 10, 25, 0.75);
+            --border-color: rgba(64, 128, 255, 0.2);
+            --accent-color: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --text-color: #f3f4f6;
+            --text-secondary: #9ca3af;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+            height: 100vh;
+        }
+
+        /* Layout structure */
+        .dashboard-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 330px;
+            height: calc(100vh - 40px);
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+            pointer-events: auto;
+            overflow-y: auto;
+            /* Scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        #sidebar-left {
+            order: 1;
+        }
+
+        #canvas-center {
+            flex-grow: 1;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1;
+        }
+
+        #sidebar-right {
+            order: 3;
+            margin-left: auto; /* Push to right side */
+        }
+
+        /* Frosted Glass Panels */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Headers */
+        h1 {
+            margin: 0 0 4px 0;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            margin: 0 0 12px 0;
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #60a5fa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 4px;
+        }
+
+        /* Selectors and Inputs */
+        select {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px var(--accent-glow);
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn:disabled {
+            background: #1e293b;
+            color: #6b7280;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Live Terminal Console */
+        #console-panel {
+            flex-grow: 1;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #console-log {
+            background: #020205;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px;
+            padding: 8px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 9px;
+            color: #34d399;
+            overflow-y: auto;
+            flex-grow: 1;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+
+        /* GPU Telemetry Panel */
+        #gpu-panel {
+            height: 150px;
+        }
+
+        /* Bottom Control Bar */
+        #bottom-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 370px;
+            right: 370px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 20px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Switch styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 18px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-switch {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #374151;
+            transition: .3s;
+            border-radius: 18px;
+        }
+
+        .slider-switch:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-switch {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider-switch:before {
+            transform: translateX(16px);
+        }
+
+        /* Results table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 6px 4px;
+        }
+
+        td {
+            padding: 8px 4px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .highlight-row {
+            color: #60a5fa;
+            font-weight: 600;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Metadata display */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .meta-lbl {
+            color: var(--text-secondary);
+        }
+
+        .meta-val {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Legend overlay */
+        #legend-overlay {
+            position: absolute;
+            top: 20px;
+            left: 370px;
+            background: rgba(5,5,10,0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 6px 16px;
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        
+        <!-- Three.js Centerpiece -->
+        <div id="canvas-center"></div>
+
+        <!-- Left Sidebar: Controls & Live hardware status -->
+        <div class="sidebar" id="sidebar-left">
+            <div class="glass-panel">
+                <h1>MarginSense</h1>
+                <h2>Interactive Demo System</h2>
+                
+                <div class="section-title">Patient Selection</div>
+                <select id="select-patient">
+                    <option value="">Loading patients...</option>
+                </select>
+                
+                <div class="meta-grid">
+                    <span class="meta-lbl">Grid Spacing:</span>
+                    <span class="meta-val" id="meta-spacing">N/A</span>
+                </div>
+                
+                <button class="btn" id="btn-run">Run Radiotherapy Planning</button>
+            </div>
+
+            <!-- GPU utilization line graph -->
+            <div class="glass-panel" id="gpu-panel">
+                <div class="section-title">Live GPU Utilization</div>
+                <div style="flex-grow: 1; position: relative; height: 100px;">
+                    <canvas id="chart-gpu"></canvas>
+                </div>
+            </div>
+
+            <!-- Real-time stdout console logs -->
+            <div class="glass-panel" id="console-panel">
+                <div class="section-title">Live Execution logs</div>
+                <div id="console-log">Ready. Select patient and click "Run Radiotherapy Planning" to begin.</div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Metrics and Stats -->
+        <div class="sidebar" id="sidebar-right">
+            <!-- Table containing Prompt 5 comparison report -->
+            <div class="glass-panel">
+                <div class="section-title">Planning Metrics Report</div>
+                <table id="table-comparison">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Time (s)</th>
+                            <th>Coverage</th>
+                            <th>Healthy Vol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">No planning runs completed.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Chart.js Spared volume & coverage bar chart -->
+            <div class="glass-panel" style="height: 180px;">
+                <div class="section-title">Coverage vs Healthy Volume</div>
+                <div style="flex-grow: 1; position: relative; height: 130px;">
+                    <canvas id="chart-metrics"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart.js Training Loss curves -->
+            <div class="glass-panel" style="height: 180px;">
+                <div class="section-title">Population Training Loss Curves</div>
+                <div style="flex-grow: 1; position: relative; height: 130px;">
+                    <canvas id="chart-loss"></canvas>
+                </div>
+            </div>
+
+            <!-- WebUI layers toggler -->
+            <div class="glass-panel">
+                <div class="section-title">Anatomical Overlays</div>
+                
+                <div class="toggle-container">
+                    <span>Show Healthy Brain Point-cloud</span>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-brain" checked>
+                        <span class="slider-switch"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span>Show Pre-treatment Tumor Core</span>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-tumor" checked>
+                        <span class="slider-switch"></span>
+                    </label>
+                </div>
+                <div class="toggle-container" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <span>Standard Margin Outline (1.5cm)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-standard" checked>
+                        <span class="slider-switch"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span>MarginSense Infiltration (Predicted)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-predicted" checked>
+                        <span class="slider-switch"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span>MarginSense Uncertainty Halo</span>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-uncertainty" checked>
+                        <span class="slider-switch"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend Overlay in center -->
+        <div id="legend-overlay">
+            <div><span class="legend-dot" style="background: #00ff88;"></span>Tumor</div>
+            <div><span class="legend-dot" style="background: #ff3333; opacity: 0.5;"></span>Standard Margin</div>
+            <div><span class="legend-dot" style="background: #ffaa00;"></span>MarginSense Map</div>
+            <div><span class="legend-dot" style="background: #dd33ff; opacity: 0.3;"></span>Uncertainty Halo</div>
+        </div>
+
+        <!-- Bottom animation controls -->
+        <div id="bottom-controls">
+            <div class="slider-container">
+                <button class="btn" id="btn-play" style="width: 80px; margin: 0;">Play</button>
+                <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); width: 110px;">Expansion Time (t):</span>
+                <input type="range" id="slider-time" min="0" max="500" value="500">
+                <span id="val-time" style="font-size: 13px; font-weight: 700; width: 40px; text-align: right;">1.00</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Load CDN Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Unified Dashboard JS logic -->
+    <script>
+        // 1. Chart.js Configurations
+        // GPU status live tracker
+        const ctxGpu = document.getElementById('chart-gpu').getContext('2d');
+        const gpuData = {
+            labels: Array(20).fill(''),
+            datasets: [
+                {
+                    label: 'GPU Load (%)',
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    data: Array(20).fill(0),
+                    borderWidth: 2,
+                    fill: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Mem (GB)',
+                    borderColor: '#10b981',
+                    data: Array(20).fill(0),
+                    borderWidth: 1.5,
+                    yAxisID: 'y1'
+                }
+            ]
+        };
+        const chartGpu = new Chart(ctxGpu, {
+            type: 'line',
+            data: gpuData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        position: 'left',
+                        min: 0, max: 100, 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#9ca3af', font: { size: 9 } }
+                    },
+                    y1: { 
+                        position: 'right',
+                        min: 0, max: 6,
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#9ca3af', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+
+        // Metrics Comparison bar chart
+        const ctxMetrics = document.getElementById('chart-metrics').getContext('2d');
+        const chartMetrics = new Chart(ctxMetrics, {
+            type: 'bar',
+            data: {
+                labels: ['Standard', 'Vanilla PINN', 'MarginSense'],
+                datasets: [
+                    {
+                        label: 'Coverage %',
+                        backgroundColor: '#60a5fa',
+                        data: [0, 0, 0]
+                    },
+                    {
+                        label: 'Healthy Vol (cm3)',
+                        backgroundColor: '#ff8b8b',
+                        data: [0, 0, 0]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#9ca3af', font: { size: 9 } }
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+
+        // Training loss curves chart
+        const ctxLoss = document.getElementById('chart-loss').getContext('2d');
+        const chartLoss = new Chart(ctxLoss, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Total Loss', borderColor: '#a78bfa', data: [], borderWidth: 2 },
+                    { label: 'Data Loss', borderColor: '#60a5fa', data: [], borderWidth: 1 },
+                    { label: 'PDE Loss', borderColor: '#f43f5e', data: [], borderWidth: 1 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#9ca3af', font: { size: 9 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af', font: { size: 8 } }
+                    }
+                }
+            }
+        });
+
+        // 2. Three.js Scene Setup
+        const container = document.getElementById('canvas-center');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030308, 0.005);
+        
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(40, 25, 45);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(scene.fog.color);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(20, 40, 20);
+        scene.add(dirLight);
+
+        // Circular particle texture generator
+        function createCircleTexture(colorStr) {
+            const matCanvas = document.createElement('canvas');
+            matCanvas.width = 16;
+            matCanvas.height = 16;
+            const matContext = matCanvas.getContext('2d');
+            const grad = matContext.createRadialGradient(8, 8, 0, 8, 8, 8);
+            grad.addColorStop(0, colorStr);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            matContext.fillStyle = grad;
+            matContext.fillRect(0, 0, 16, 16);
+            return new THREE.CanvasTexture(matCanvas);
+        }
+        const circleTexWhite = createCircleTexture('rgba(255,255,255,1)');
+
+        // Meshes holders
+        let brainPoints = null;
+        let tumorPoints = null;
+        let standardPoints = null;
+        let uncertaintyPoints = null;
+        let predictedPoints = null;
+        let patientData = null;
+
+        // Clean meshes
+        function clearMeshes() {
+            [brainPoints, tumorPoints, standardPoints, uncertaintyPoints, predictedPoints].forEach(mesh => {
+                if (mesh) {
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                }
+            });
+            brainPoints = tumorPoints = standardPoints = uncertaintyPoints = predictedPoints = null;
+        }
+
+        // 3. API Integrations
+        // Load patients list
+        async function fetchPatients() {
+            const res = await fetch("/api/patients");
+            const patients = await res.json();
+            const select = document.getElementById("select-patient");
+            select.innerHTML = "";
+            patients.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p;
+                opt.textContent = p;
+                select.appendChild(opt);
+            });
+            // select second patient as default (synthetic_patient_2)
+            if (patients.includes("synthetic_patient_2")) {
+                select.value = "synthetic_patient_2";
+            }
+            loadPatientData();
+        }
+
+        // Load 3D and comparison stats for patient
+        async function loadPatientData() {
+            const patientId = document.getElementById("select-patient").value;
+            if (!patientId) return;
+
+            clearMeshes();
+            document.getElementById("meta-spacing").textContent = "Loading...";
+
+            try {
+                const res = await fetch(`/api/patient_data/${patientId}`);
+                patientData = await res.json();
+
+                document.getElementById("meta-spacing").textContent = 
+                    `${patientData.spacing[0].toFixed(1)} x ${patientData.spacing[1].toFixed(1)} x ${patientData.spacing[2].toFixed(1)} mm`;
+
+                // Reconstruct meshes
+                reconstructWebGLScene();
+                // Update comparison metrics
+                updateMetricsReport();
+            } catch (e) {
+                console.error("Error loading patient", e);
+                document.getElementById("meta-spacing").textContent = "Error";
+                document.getElementById("console-log").textContent += "\n[Error] Failed to load 3D data: " + e.message + "\n[Tip] Please click 'Run Radiotherapy Planning' to generate spatial models.";
+            }
+        }
+
+        document.getElementById("select-patient").addEventListener("change", loadPatientData);
+
+        // Build WebGL geometries
+        function reconstructWebGLScene() {
+            if (!patientData) return;
+
+            const N = patientData.shape[0];
+            const offset = [N/2, N/2, N/2];
+
+            const brainPos = [];
+            const tumorPos = [];
+            const standardPos = [];
+            const uncertaintyPos = [];
+
+            for (let z = 0; z < N; z++) {
+                for (let y = 0; y < N; y++) {
+                    for (let x = 0; x < N; x++) {
+                        const idx = z * N * N + y * N + x;
+                        const px = (x - offset[0]) * patientData.spacing[0];
+                        const py = (y - offset[1]) * patientData.spacing[1];
+                        const pz = (z - offset[2]) * patientData.spacing[2];
+
+                        if (patientData.brain_mask[idx] === 1 && patientData.tumor_mask[idx] === 0) {
+                            if (Math.random() < 0.15) {
+                                brainPos.push(px, py, pz);
+                            }
+                        }
+                        if (patientData.tumor_mask[idx] === 1) {
+                            tumorPos.push(px, py, pz);
+                        }
+                        if (patientData.uniform_margin[idx] === 1 && patientData.tumor_mask[idx] === 0) {
+                            standardPos.push(px, py, pz);
+                        }
+                        if (patientData.uncertainty[idx] > 0.03 && patientData.tumor_mask[idx] === 0) {
+                            uncertaintyPos.push(px, py, pz);
+                        }
+                    }
+                }
+            }
+
+            // Create geoms
+            const brainGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(brainPos, 3));
+            const tumorGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(tumorPos, 3));
+            const standardGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(standardPos, 3));
+            const uncertaintyGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(uncertaintyPos, 3));
+
+            brainPoints = new THREE.Points(brainGeom, new THREE.PointsMaterial({
+                color: 0x2288ff, size: 0.5, map: circleTexWhite, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            tumorPoints = new THREE.Points(tumorGeom, new THREE.PointsMaterial({
+                color: 0x00ffaa, size: 1.2, map: circleTexWhite, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            standardPoints = new THREE.Points(standardGeom, new THREE.PointsMaterial({
+                color: 0xff3333, size: 0.6, map: circleTexWhite, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            uncertaintyPoints = new THREE.Points(uncertaintyGeom, new THREE.PointsMaterial({
+                color: 0xd946ef, size: 1.8, map: circleTexWhite, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+
+            // Sync visibility checkboxes
+            brainPoints.visible = document.getElementById('chk-brain').checked;
+            tumorPoints.visible = document.getElementById('chk-tumor').checked;
+            standardPoints.visible = document.getElementById('chk-standard').checked;
+            uncertaintyPoints.visible = document.getElementById('chk-uncertainty').checked;
+
+            scene.add(brainPoints, tumorPoints, standardPoints, uncertaintyPoints);
+
+            // Trigger margin density calculation at current slider position
+            updatePredictedMargin(document.getElementById("slider-time").value / 100.0);
+        }
+
+        // Color interpolation
+        function getHeatmapColor(density) {
+            let r = 0, g = 0, b = 0;
+            if (density < 0.5) {
+                const alpha = density / 0.5;
+                r = Math.floor(0 * (1 - alpha) + 255 * alpha);
+                g = Math.floor(170 * (1 - alpha) + 204 * alpha);
+                b = Math.floor(255 * (1 - alpha) + 0 * alpha);
+            } else {
+                const alpha = (density - 0.5) / 0.5;
+                r = Math.floor(255 * (1 - alpha) + 255 * alpha);
+                g = Math.floor(204 * (1 - alpha) + 0 * alpha);
+                b = Math.floor(0 * (1 - alpha) + 51 * alpha);
+            }
+            return new THREE.Color(`rgb(${r}, ${g}, ${b})`);
+        }
+
+        // Animate MarginSense expander
+        function updatePredictedMargin(timeVal) {
+            if (!patientData) return;
+
+            const N = patientData.shape[0];
+            const offset = [N/2, N/2, N/2];
+            const idx1 = Math.floor(timeVal);
+            const idx2 = Math.min(idx1 + 1, 5);
+            const alpha = timeVal - idx1;
+
+            const grid1 = patientData.temporal_densities[idx1];
+            const grid2 = patientData.temporal_densities[idx2];
+
+            const positions = [];
+            const colors = [];
+
+            for (let z = 0; z < N; z++) {
+                for (let y = 0; y < N; y++) {
+                    for (let x = 0; x < N; x++) {
+                        const idx = z * N * N + y * N + x;
+                        const d1 = grid1[idx];
+                        const d2 = grid2[idx];
+                        const density = (1 - alpha) * d1 + alpha * d2;
+
+                        if (density >= 0.05 && patientData.tumor_mask[idx] === 0) {
+                            const px = (x - offset[0]) * patientData.spacing[0];
+                            const py = (y - offset[1]) * patientData.spacing[1];
+                            const pz = (z - offset[2]) * patientData.spacing[2];
+
+                            positions.push(px, py, pz);
+                            const color = getHeatmapColor(density);
+                            colors.push(color.r, color.g, color.b);
+                        }
+                    }
+                }
+            }
+
+            if (predictedPoints) {
+                scene.remove(predictedPoints);
+                predictedPoints.geometry.dispose();
+            }
+
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            predictedPoints = new THREE.Points(geom, new THREE.PointsMaterial({
+                size: 1.0, vertexColors: true, map: circleTexWhite, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            
+            predictedPoints.visible = document.getElementById('chk-predicted').checked;
+            scene.add(predictedPoints);
+        }
+
+        // Update stats and charts on load/runs completion
+        async function updateMetricsReport() {
+            const patientId = document.getElementById("select-patient").value;
+            try {
+                const res = await fetch(`/api/comparison/${patientId}`);
+                const data = await res.json();
+
+                const tbody = document.querySelector("#table-comparison tbody");
+                tbody.innerHTML = "";
+
+                const metrics_data = {
+                    coverage: [],
+                    spared: []
+                };
+
+                const method_keys = [
+                    "Clinical Standard (Uniform Margin)",
+                    "Vanilla PINN (Per-Patient)",
+                    "MarginSense (Ensemble Amortized)"
+                ];
+
+                method_keys.forEach(method => {
+                    const rowData = data.results[method];
+                    if (!rowData) return;
+
+                    const row = document.createElement("tr");
+                    if (method.includes("MarginSense")) {
+                        row.className = "highlight-row";
+                    }
+
+                    // Display friendly names
+                    const friendlyName = method.replace("Clinical Standard ", "").replace(" (Ensemble Amortized)", "").replace(" (Per-Patient)", "");
+
+                    row.innerHTML = `
+                        <td>${friendlyName}</td>
+                        <td>${rowData.processing_time_seconds.toFixed(2)}</td>
+                        <td>${rowData.recurrence_coverage_percent.toFixed(1)}%</td>
+                        <td>${rowData.treated_healthy_tissue_volume_cm3.toFixed(1)}</td>
+                    `;
+                    tbody.appendChild(row);
+
+                    metrics_data.coverage.push(rowData.recurrence_coverage_percent);
+                    metrics_data.spared.push(rowData.treated_healthy_tissue_volume_cm3);
+                });
+
+                // Update Chart.js bar graph
+                chartMetrics.data.datasets[0].data = metrics_data.coverage;
+                chartMetrics.data.datasets[1].data = metrics_data.spared;
+                chartMetrics.update();
+
+            } catch (e) {
+                // Table fallback
+                const tbody = document.querySelector("#table-comparison tbody");
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">Planning runs incomplete. Click 'Run Planning'.</td></tr>`;
+                chartMetrics.data.datasets[0].data = [0, 0, 0];
+                chartMetrics.data.datasets[1].data = [0, 0, 0];
+                chartMetrics.update();
+            }
+        }
+
+        // Fetch offline loss curves
+        async function loadTrainingCurves() {
+            try {
+                const res = await fetch("/api/training_curves");
+                const data = await res.json();
+                
+                chartLoss.data.labels = data.epochs;
+                chartLoss.data.datasets[0].data = data.loss;
+                chartLoss.data.datasets[1].data = data.loss_data;
+                chartLoss.data.datasets[2].data = data.loss_pde;
+                chartLoss.update();
+            } catch (e) {}
+        }
+
+        // 4. Live execution and telemetry
+        let pollingInterval = null;
+        
+        // Starts polling hardware stats
+        function startHardwarePolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(async () => {
+                try {
+                    const res = await fetch("/api/gpu_status");
+                    const status = await res.json();
+                    
+                    // Shift values
+                    gpuData.datasets[0].data.shift();
+                    gpuData.datasets[0].data.push(status.utilization);
+                    
+                    gpuData.datasets[1].data.shift();
+                    // Max memory used globally
+                    const memGB = status.memory_used / 1024.0;
+                    gpuData.datasets[1].data.push(memGB);
+                    
+                    chartGpu.update();
+                } catch (e) {}
+            }, 500);
+        }
+
+        function stopHardwarePolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Click Run pipeline
+        document.getElementById("btn-run").addEventListener("click", async () => {
+            const patientId = document.getElementById("select-patient").value;
+            if (!patientId) return;
+
+            const btn = document.getElementById("btn-run");
+            const consoleBox = document.getElementById("console-log");
+            
+            btn.disabled = true;
+            consoleBox.textContent = "[*] Dispatching model jobs to local GPU...\n";
+            
+            // Activate live telemetry
+            startHardwarePolling();
+
+            try {
+                // Call API to start background pipeline execution
+                const res = await fetch("/api/start_pipeline", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ patient_id: patientId })
+                });
+                const initResult = await res.json();
+                if (initResult.status !== "started") {
+                    throw new Error(initResult.message || "Failed to start pipeline.");
+                }
+
+                // Poll logs every 500ms
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const logRes = await fetch("/api/live_logs");
+                        const logStatus = await logRes.json();
+                        
+                        consoleBox.textContent = logStatus.logs;
+                        consoleBox.scrollTop = consoleBox.scrollHeight;
+                        
+                        if (!logStatus.is_running) {
+                            clearInterval(pollInterval);
+                            btn.disabled = false;
+                            stopHardwarePolling();
+                            // Reload patient layout/report
+                            await loadPatientData();
+                        }
+                    } catch (e) {
+                        consoleBox.textContent += `\n[Error] Log polling exception: ${e}`;
+                    }
+                }, 500);
+
+            } catch (e) {
+                consoleBox.textContent += `\n[Error] Pipeline network start failed: ${e}`;
+                btn.disabled = false;
+                stopHardwarePolling();
+            }
+        });
+
+        // 5. Animation controls
+        const sliderTime = document.getElementById('slider-time');
+        const valTime = document.getElementById('val-time');
+        const btnPlay = document.getElementById('btn-play');
+        let isPlaying = false;
+        let animationFrameId = null;
+
+        function setTime(val) {
+            sliderTime.value = val;
+            valTime.textContent = (val / 500.0).toFixed(2);
+            updatePredictedMargin(val / 100.0);
+        }
+
+        sliderTime.addEventListener('input', (e) => {
+            setTime(e.target.value);
+            if (isPlaying) togglePlay();
+        });
+
+        // Toggles visibility
+        document.getElementById('chk-brain').addEventListener('change', (e) => {
+            if (brainPoints) brainPoints.visible = e.target.checked;
+        });
+        document.getElementById('chk-tumor').addEventListener('change', (e) => {
+            if (tumorPoints) tumorPoints.visible = e.target.checked;
+        });
+        document.getElementById('chk-standard').addEventListener('change', (e) => {
+            if (standardPoints) standardPoints.visible = e.target.checked;
+        });
+        document.getElementById('chk-predicted').addEventListener('change', (e) => {
+            if (predictedPoints) predictedPoints.visible = e.target.checked;
+        });
+        document.getElementById('chk-uncertainty').addEventListener('change', (e) => {
+            if (uncertaintyPoints) uncertaintyPoints.visible = e.target.checked;
+        });
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                btnPlay.textContent = "Pause";
+                animateSpread();
+            } else {
+                btnPlay.textContent = "Play";
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            }
+        }
+        btnPlay.addEventListener('click', togglePlay);
+
+        function animateSpread() {
+            let currentVal = parseFloat(sliderTime.value);
+            currentVal += 4;
+            if (currentVal > 500) currentVal = 0;
+            setTime(currentVal);
+            if (isPlaying) animationFrameId = requestAnimationFrame(animateSpread);
+        }
+
+        // Window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // 6. Frame Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.0001;
+            
+            [brainPoints, tumorPoints, standardPoints, uncertaintyPoints, predictedPoints].forEach(mesh => {
+                if (mesh) mesh.rotation.y = time * 0.1;
+            });
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initial setup
+        fetchPatients();
+        loadTrainingCurves();
+        animate();
+    </script>
+</body>
+</html>
