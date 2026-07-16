@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 # Import our MarginSense network
-from src.models.amortized_pinn import MarginSenseNet
+from src.models.amortized_pinn import MarginSenseNet, load_covariate_vector
 
 def main():
     parser = argparse.ArgumentParser(description="MarginSense Ensemble Uncertainty Quantification")
@@ -57,7 +57,7 @@ def main():
     for ckpt_path in ensemble_checkpoints:
         model = MarginSenseNet(embedding_dim=64, hidden_dim=64).to(device)
         checkpoint = torch.load(ckpt_path, map_location=device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
         model.eval()
         models.append(model)
         
@@ -78,11 +78,14 @@ def main():
     mean_density = np.zeros(coords_grid.shape[0], dtype=np.float32)
     std_density = np.zeros(coords_grid.shape[0], dtype=np.float32)
     
+    cov_vec = load_covariate_vector(patient_id)
+    cov_tensor = torch.tensor(cov_vec, dtype=torch.float32, device=device).unsqueeze(0)
+    
     # Run CNN encoder on the volume for all 5 models to get embeddings
     embeddings = []
     with torch.no_grad():
         for model in models:
-            z_embed, _, _ = model.forward_encoder(volume_tensor)
+            z_embed, _, _ = model.forward_encoder(volume_tensor, cov_tensor)
             embeddings.append(z_embed.float())
             
     # Evaluation loop in chunks to prevent CUDA OOM

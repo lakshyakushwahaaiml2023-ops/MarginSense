@@ -1,0 +1,9 @@
+{
+  "age": "45",
+  "kps": "90",
+  "idh_status": "Mutant",
+  "mgmt_status": "Methylated",
+  "resection_extent": "GTR",
+  "laterality": "Right",
+  "notes": "Defaults from GBM population literature (Stupp et al. 2005). Replace with actual patient values before clinical interpretation."
+}

@@ -7,7 +7,7 @@ import torch
 from scipy.ndimage import zoom
 
 # Import our MarginSense network
-from src.models.amortized_pinn import MarginSenseNet
+from src.models.amortized_pinn import MarginSenseNet, load_covariate_vector
 
 def main():
     parser = argparse.ArgumentParser(description="MarginSense Visualizer Data Exporter")
@@ -82,7 +82,7 @@ def main():
             break
         model = MarginSenseNet(embedding_dim=64, hidden_dim=64).to(device)
         checkpoint = torch.load(ckpt_path, map_location=device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
         model.eval()
         models.append(model)
         
@@ -97,10 +97,13 @@ def main():
         volume_in = np.concatenate([image, np.expand_dims(label, axis=0)], axis=0)
         volume_tensor = torch.tensor(volume_in, dtype=torch.float32, device=device).unsqueeze(0)
         
+        cov_vec = load_covariate_vector(patient_id)
+        cov_tensor = torch.tensor(cov_vec, dtype=torch.float32, device=device).unsqueeze(0)
+        
         embeddings = []
         with torch.no_grad():
             for model in models:
-                z_embed, _, _ = model.forward_encoder(volume_tensor)
+                z_embed, _, _ = model.forward_encoder(volume_tensor, cov_tensor)
                 embeddings.append(z_embed.float())
                 
         # Evaluate for each timepoint

@@ -42,15 +42,23 @@ class Encoder3D(nn.Module):
         self.fc_log_D = nn.Linear(64, 1)
         self.fc_log_rho = nn.Linear(64, 1)
         
+        # Project covariates (shape Bx6) to 64 dims
+        self.cov_proj = nn.Linear(6, 64)
+        nn.init.zeros_(self.cov_proj.weight)
+        nn.init.zeros_(self.cov_proj.bias)
+        
         # Initialize biases to standard initial physical values: D0 ~ 0.01 (log(-4.6)), rho0 ~ 0.3 (log(-1.2))
         self.fc_log_D.bias.data.fill_(-4.6)
         self.fc_log_rho.bias.data.fill_(-1.2)
         
-    def forward(self, x):
+    def forward(self, x, covariates=None):
         features = self.conv(x)
         features = features.view(features.size(0), -1)
         features = self.fc(features)
         
+        if covariates is not None:
+            features = features + self.cov_proj(covariates)
+            
         z_embed = self.fc_embed(features)
         
         # Enforce positive physics parameters via exponential mapping
@@ -131,20 +139,66 @@ class MarginSenseNet(nn.Module):
         self.encoder = Encoder3D(in_channels=5, embedding_dim=embedding_dim)
         self.coordinate_mlp = CoordinateMLP(embedding_dim=embedding_dim, hidden_dim=hidden_dim)
         
-    def forward_encoder(self, volume):
+    def forward_encoder(self, volume, covariates=None):
         """Runs the 3D CNN to extract patient features and physical variables."""
-        return self.encoder(volume)
+        return self.encoder(volume, covariates)
         
     def forward_coordinate(self, coords, z_embed):
         """Evaluates the cell density at specific coordinates conditioned on the patient embedding."""
         return self.coordinate_mlp(coords, z_embed)
         
-    def forward(self, volume, coords):
+    def forward(self, volume, coords, covariates=None):
         """Combined forward pass: extracts embedding and evaluates at coords."""
-        z_embed, D, rho = self.forward_encoder(volume)
+        z_embed, D, rho = self.forward_encoder(volume, covariates)
         
         # Expand embedding to match the number of coordinates
         z_expanded = z_embed.expand(coords.size(0), -1)
         
         density = self.forward_coordinate(coords, z_expanded)
         return density, D, rho
+
+
+def load_covariate_vector(patient_id):
+    """Loads patient covariates JSON if present, otherwise uses literature defaults,
+    and returns a standardized 6-element numeric list.
+    """
+    import os
+    import json
+    
+    cov_path = f"data/processed/{patient_id}_covariates.json"
+    cov = None
+    if os.path.exists(cov_path):
+        try:
+            with open(cov_path, "r") as f:
+                cov = json.load(f)
+        except Exception:
+            pass
+            
+    if cov is None:
+        # Generate default covariates
+        cov = {
+            "age": 58,
+            "kps": 80,
+            "idh_status": "Wild-type",
+            "mgmt_status": "Unmethylated",
+            "resection_extent": "GTR",
+            "laterality": "Left"
+        }
+        
+    try:
+        age = float(cov.get("age", 58))
+    except Exception:
+        age = 58.0
+        
+    try:
+        kps = float(cov.get("kps", 80))
+    except Exception:
+        kps = 80.0
+        
+    idh = 1.0 if cov.get("idh_status") == "Mutant" else 0.0
+    mgmt = 1.0 if cov.get("mgmt_status") == "Methylated" else 0.0
+    
+    resection = 1.0 if cov.get("resection_extent") == "GTR" else (0.5 if cov.get("resection_extent") == "STR" else 0.0)
+    laterality = 0.0 if cov.get("laterality") == "Left" else (0.5 if cov.get("laterality") == "Right" else 1.0)
+    
+    return [age, kps, idh, mgmt, resection, laterality]
