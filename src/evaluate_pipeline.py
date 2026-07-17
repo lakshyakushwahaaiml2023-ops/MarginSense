@@ -572,7 +572,7 @@ def main():
         )
         fold_metrics[val_pid][GLIODIL_NAME] = gliodil_metrics
 
-        print(f"  \u23f1  GliODIL wall-clock: {gliodil_time:.1f}s ({gliodil_time/60:.1f} min) — per-patient optimization")
+        print(f"  [TIME] GliODIL wall-clock: {gliodil_time:.1f}s ({gliodil_time/60:.1f} min) -- per-patient optimization")
 
         # Save this patient's prediction files in outputs
         np.savez_compressed(

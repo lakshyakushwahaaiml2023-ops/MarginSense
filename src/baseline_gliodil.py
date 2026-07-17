@@ -407,13 +407,10 @@ def run_coarse_to_fine(optimizer_obj, adam_iters_coarse, adam_iters_fine, lr, de
     for i in range(adam_iters_coarse):
         coarse_opt.zero_grad()
         c1 = torch.sigmoid(coarse_field)
-        D_field = build_diffusion_field(coarse_tissue.to(torch.int8), optimizer_obj.D)
-        # Resize D_field to coarse shape
-        D_field = torch.nn.functional.avg_pool3d(
-            D_field.unsqueeze(0).unsqueeze(0), kernel_size=2, stride=2
-        ).squeeze()
+        # Build D_field at coarse resolution directly from coarse_tissue (already 64^3)
+        D_field_coarse = build_diffusion_field(coarse_tissue.to(torch.int8), optimizer_obj.D)
         dc_dt = c1 - coarse_ic
-        div_D = fd_divergence_D_grad_c(c1, D_field, coarse_spacing)
+        div_D = fd_divergence_D_grad_c(c1, D_field_coarse, coarse_spacing)
         react = optimizer_obj.rho * c1 * (1.0 - c1)
         loss_data = torch.mean((c1 - coarse_rec) ** 2)
         loss_ic   = torch.mean((c1 - dc_dt - coarse_ic) ** 2)
@@ -549,10 +546,10 @@ def run_gliodil(patient_id, label, recurrence, tissue_map, spacing, device,
     peak_mem_mb = (torch.cuda.max_memory_allocated(device) - mem_start) / (1024**2)
 
     print(f"\n[+] [GliODIL] Optimization complete.")
-    print(f"    ⏱  Wall-clock time: {elapsed_time:.1f} seconds  ({elapsed_time/60:.1f} min)")
-    print(f"    🧠 Peak GPU memory: {peak_mem_mb:.1f} MB")
-    print(f"    📊 Estimated D   : {gliodil.D.item():.5f} mm²/day")
-    print(f"    📊 Estimated rho : {gliodil.rho.item():.5f} /day")
+    print(f"    [TIME] Wall-clock time: {elapsed_time:.1f} seconds  ({elapsed_time/60:.1f} min)")
+    print(f"    [MEM ] Peak GPU memory: {peak_mem_mb:.1f} MB")
+    print(f"    [D   ] Estimated D   : {gliodil.D.item():.5f} mm^2/day")
+    print(f"    [rho ] Estimated rho : {gliodil.rho.item():.5f} /day")
 
     # Extract density grid
     gliodil_density = gliodil.density().detach().cpu().numpy().astype(np.float32)
@@ -623,13 +620,13 @@ def main():
     gliodil_mask = (density >= args.threshold) & (tissue_map != 3)
     target_vol_voxels = int(np.sum(gliodil_mask))
     voxel_vol_cm3 = float(np.prod(spacing)) / 1000.0
-    print(f"\n[+] GliODIL results for patient '{patient_id}':")
+    print(f"[+] GliODIL results for patient '{patient_id}':")
     print(f"    Threshold:       {args.threshold}")
-    print(f"    Target volume:   {target_vol_voxels} voxels ({target_vol_voxels * voxel_vol_cm3:.2f} cm³)")
-    print(f"    Wall-clock time: {elapsed_time:.1f}s ({elapsed_time/60:.1f} min) — per-patient optimization")
+    print(f"    Target volume:   {target_vol_voxels} voxels ({target_vol_voxels * voxel_vol_cm3:.2f} cm3)")
+    print(f"    Wall-clock time: {elapsed_time:.1f}s ({elapsed_time/60:.1f} min) -- per-patient optimization")
     print(f"    Peak GPU memory: {peak_mem_mb:.1f} MB")
     print(f"    Final loss:      {final_loss:.6f}")
-    print(f"    Estimated D:     {D_est:.5f} mm²/day")
+    print(f"    Estimated D:     {D_est:.5f} mm^2/day")
     print(f"    Estimated rho:   {rho_est:.5f} /day")
 
     # ── Save Output ──────────────────────────────────────────────────────────

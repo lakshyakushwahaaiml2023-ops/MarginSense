@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-18T02:04:43",
+  "generated_at": "2026-07-18T02:51:47",
   "patient_id": "synthetic_patient_2",
   "model_version": "MarginSense Ensemble v1.0 (5-model amortized PINN)",
   "imaging_sequences": [
