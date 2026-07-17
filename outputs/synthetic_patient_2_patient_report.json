@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-17T11:38:42",
+  "generated_at": "2026-07-17T15:39:57",
   "patient_id": "synthetic_patient_2",
   "model_version": "MarginSense Ensemble v1.0 (5-model amortized PINN)",
   "imaging_sequences": [
@@ -9,30 +9,62 @@
     "FLAIR"
   ],
   "pipeline_threshold": 0.35,
+  "disclaimer": "The tumor infiltration probability is derived from ensemble agreement across 5 amortized PINN models. This is a model-confidence estimate representing model consensus, not a clinically calibrated probability validated against outcome data.",
   "covariates": {
     "age": {
       "value": 58,
-      "is_literature_default": true
+      "is_literature_default": true,
+      "is_auto_computed": false
     },
     "kps": {
       "value": 80,
-      "is_literature_default": true
+      "is_literature_default": true,
+      "is_auto_computed": false
     },
     "idh_status": {
       "value": "Wild-type",
-      "is_literature_default": true
+      "is_literature_default": true,
+      "is_auto_computed": false
     },
     "mgmt_status": {
       "value": "Unmethylated",
-      "is_literature_default": true
+      "is_literature_default": true,
+      "is_auto_computed": false
     },
     "resection_extent": {
       "value": "GTR",
-      "is_literature_default": true
+      "is_literature_default": true,
+      "is_auto_computed": false
     },
     "laterality": {
       "value": "Left",
-      "is_literature_default": true
+      "is_literature_default": true,
+      "is_auto_computed": false
+    },
+    "tumor_volume_cm3": {
+      "value": 42.265,
+      "is_literature_default": false,
+      "is_auto_computed": true
+    },
+    "hemisphere": {
+      "value": "Bilateral",
+      "is_literature_default": false,
+      "is_auto_computed": true
+    },
+    "tumor_location": {
+      "value": "Insular",
+      "is_literature_default": false,
+      "is_auto_computed": true
+    },
+    "ventricle_dist_mm": {
+      "value": 1.0,
+      "is_literature_default": false,
+      "is_auto_computed": true
+    },
+    "sphericity": {
+      "value": 1.0,
+      "is_literature_default": false,
+      "is_auto_computed": true
     }
   },
   "simulation": {
@@ -74,6 +106,7 @@
     }
   ],
   "quality_caveats": [
+    "Infiltration probability is derived from ensemble agreement across 5 deep learning models; it represents a model-confidence estimate, not a clinically calibrated probability validated against outcome data.",
     "Patient age was not provided and used a literature default value (58). Replace with actual patient data before clinical use.",
     "KPS score was not provided and used a literature default value (80). Replace with actual patient data before clinical use.",
     "IDH mutation status was not provided and used a literature default value (Wild-type). Replace with actual patient data before clinical use.",

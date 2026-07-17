@@ -308,8 +308,20 @@ def run_pipeline(patient_id, t1_path, t1ce_path, t2_path, flair_path,
             np.sum(tissue_map == 1), np.sum(tissue_map == 2), np.sum(tissue_map == 3)))
         recurrence = (label > 0).astype(np.int8)
 
-        # 7. Save NPZ + covariates
-        log("[7/7] Writing patient-ready NPZ bundle...")
+        # 7. Derived features sidecar
+        log("[7/8] Computing derived imaging features...")
+        from src.compute_features import compute_all_imaging_features
+        try:
+            derived_feats = compute_all_imaging_features(label, resampled_spacing, tissue_map)
+            derived_file = "data/processed/{}_derived_features.json".format(patient_id)
+            with open(derived_file, "w") as fh:
+                json.dump(derived_feats, fh, indent=4)
+            log("      Derived features saved: " + derived_file)
+        except Exception as e:
+            log("      [Warning] Derived features extraction failed: {}".format(e))
+
+        # 8. Save NPZ + covariates
+        log("[8/8] Writing patient-ready NPZ bundle and covariates...")
         os.makedirs("data/processed", exist_ok=True)
         npz_path = "data/processed/{}.npz".format(patient_id)
         np.savez_compressed(

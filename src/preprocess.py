@@ -170,6 +170,18 @@ def main():
             # Estimate tissue types from resampled image and label
             tissue_map = estimate_tissue_types(stacked_image, seg_resampled)
             
+            # Save derived features json sidecar
+            from src.compute_features import compute_all_imaging_features
+            import json
+            try:
+                derived_feats = compute_all_imaging_features(seg_resampled, resampled_spacing, tissue_map)
+                derived_file = os.path.join(processed_dir, f"{patient_id}_derived_features.json")
+                with open(derived_file, "w") as f:
+                    json.dump(derived_feats, f, indent=4)
+                print(f"            Derived features saved: {derived_file}")
+            except Exception as e:
+                print(f"            [Warning] Failed to compute derived features: {e}")
+
             # Save compressed
             out_file = os.path.join(processed_dir, f"{patient_id}.npz")
             np.savez_compressed(

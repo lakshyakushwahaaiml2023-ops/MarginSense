@@ -60,13 +60,20 @@ def train_single_model(model_idx, seed, epochs, lr, patient_files, device, lambd
             volume_in = np.concatenate([image, np.expand_dims(label, axis=0)], axis=0)
             volume_tensor = torch.tensor(volume_in, dtype=torch.float32, device=device).unsqueeze(0)
             
+            # Load covariates (11 features total: 6 manual + 5 auto-computed)
+            # RETRAIN_REQUIRED: Training must include the 11-dimensional covariate vector
+            from src.models.amortized_pinn import load_covariate_vector
+            patient_id = os.path.basename(p_file).replace(".npz", "")
+            cov_vec = load_covariate_vector(patient_id, npz_data=data)
+            cov_tensor = torch.tensor(cov_vec, dtype=torch.float32, device=device).unsqueeze(0)
+
             tissue_map_tensor = torch.tensor(tissue_map, dtype=torch.int8, device=device)
             
             optimizer.zero_grad()
             
             # Encoder forward (mixed precision)
             with torch.amp.autocast('cuda'):
-                z_embed, D_0, rho_0 = model.forward_encoder(volume_tensor)
+                z_embed, D_0, rho_0 = model.forward_encoder(volume_tensor, covariates=cov_tensor)
                 
             z_embed = z_embed.float()
             D_0 = D_0.float()
@@ -97,26 +104,58 @@ def train_single_model(model_idx, seed, epochs, lr, patient_files, device, lambd
             grads = torch.autograd.grad(pred_pde.sum(), coords_pde, create_graph=True)[0]
             dc_dx, dc_dy, dc_dz, dc_dt = grads[:, 0], grads[:, 1], grads[:, 2], grads[:, 3]
             
-            d2c_dx2 = torch.autograd.grad(dc_dx.sum(), coords_pde, create_graph=True)[0][:, 0]
-            d2c_dy2 = torch.autograd.grad(dc_dy.sum(), coords_pde, create_graph=True)[0][:, 1]
-            d2c_dz2 = torch.autograd.grad(dc_dz.sum(), coords_pde, create_graph=True)[0][:, 2]
-            laplacian = d2c_dx2 + d2c_dy2 + d2c_dz2
-            
             # GPU healthy tissue lookup for spatially-varying diffusion
             grid_xyz = coords_pde[:, :3] * 128.0
             grid_indices = torch.clamp(grid_xyz, 0, 127).long()
             tissue_vals = tissue_map_tensor[grid_indices[:, 0], grid_indices[:, 1], grid_indices[:, 2]]
             
+            # Map tissue type to local diffusion multiplier (WM = 0.15, GM = 0.03, CSF = 0.0, Necrotic/ED = 0.075)
+            # grounded in clinical literature (Giese et al., Swanson glioma model)
             diffusion_weights = torch.zeros(coords_pde.size(0), device=device)
-            diffusion_weights[tissue_vals == 1] = 1.0
-            diffusion_weights[tissue_vals == 2] = 0.1
+            diffusion_weights[tissue_vals == 1] = 0.15
+            diffusion_weights[tissue_vals == 2] = 0.03
             diffusion_weights[tissue_vals == 3] = 0.0
-            diffusion_weights[tissue_vals == 0] = 0.5
+            diffusion_weights[tissue_vals == 0] = 0.075
             
+            # Scale global D_0 by tissue weights
             D_local = D_0.squeeze() * diffusion_weights
             
-            # PDE residual
-            pde_residual = dc_dt - D_local * laplacian - rho_0.squeeze() * pred_pde.squeeze() * (1.0 - pred_pde.squeeze())
+            # --- Generic Full Tensor Diffusion: ∇·(D(x)∇c) ---
+            # grad_c has shape (B, 3) where columns are [dc_dx, dc_dy, dc_dz]
+            grad_c = torch.stack([dc_dx, dc_dy, dc_dz], dim=1)
+            
+            # Populate D(x) per voxel: shape (B, 3, 3)
+            # Default isotropic tensor: d_scalar(x) * I
+            I_matrix = torch.eye(3, device=device).unsqueeze(0)  # Shape (1, 3, 3)
+            D_tensor = D_local.unsqueeze(1).unsqueeze(2) * I_matrix  # Shape (B, 3, 3)
+            
+            # --- DTI TENSOR EXTENSION POINT ---
+            # Placeholder code path for supplying a true DTI-derived tensor per voxel.
+            # When DTI data is available, this block can be enabled to load a 3x3 diffusion tensor
+            # mapping anisotropic orientation (e.g. from fractional anisotropy / main eigenvector direction)
+            # rather than falling back to the isotropic d_scalar(x) * I.
+            dti_data_available = False  # Set to True when DTI data is integrated
+            if dti_data_available:
+                # Example placeholder: D_tensor = load_dti_tensor_at_coords(coords_pde)
+                # D_tensor should be a batch of symmetric positive-definite 3x3 tensors (B, 3, 3)
+                pass
+            # ----------------------------------
+            
+            # Compute flux j = D(x) @ grad_c: shape (B, 3)
+            flux = torch.bmm(D_tensor, grad_c.unsqueeze(2)).squeeze(2)  # Shape (B, 3)
+            jx = flux[:, 0]
+            jy = flux[:, 1]
+            jz = flux[:, 2]
+            
+            # Divergence of flux: ∇·j = ∂jx/∂x + ∂jy/∂y + ∂jz/∂z
+            djx_dx = torch.autograd.grad(jx.sum(), coords_pde, create_graph=True)[0][:, 0]
+            djy_dy = torch.autograd.grad(jy.sum(), coords_pde, create_graph=True)[0][:, 1]
+            djz_dz = torch.autograd.grad(jz.sum(), coords_pde, create_graph=True)[0][:, 2]
+            
+            div_flux = djx_dx + djy_dy + djz_dz
+            
+            # PDE residual using divergence of flux
+            pde_residual = dc_dt - div_flux - rho_0.squeeze() * pred_pde.squeeze() * (1.0 - pred_pde.squeeze())
             loss_pde = torch.mean(pde_residual ** 2)
             
             # Total Loss
@@ -158,6 +197,25 @@ def train_single_model(model_idx, seed, epochs, lr, patient_files, device, lambd
         'seed': seed
     }, checkpoint_path)
     print(f"[+] Saved checkpoint to {checkpoint_path}")
+    
+    if model_idx == 0:
+        # Save final patient latent vectors for all training cases (from Model 0)
+        print("  [*] Saving final patient latent vectors to lookup table from Model 0...")
+        from src.models.amortized_pinn import save_patient_latent
+        model.eval()
+        with torch.no_grad():
+            for p_file in patient_files:
+                p_id = os.path.basename(p_file).replace(".npz", "")
+                p_data = np.load(p_file)
+                p_img = p_data['image']
+                p_lbl = p_data['label']
+                p_vol_in = np.concatenate([p_img, np.expand_dims(p_lbl, axis=0)], axis=0)
+                p_vol_tensor = torch.tensor(p_vol_in, dtype=torch.float32, device=device).unsqueeze(0)
+                p_cov_vec = load_covariate_vector(p_id, npz_data=p_data)
+                p_cov_tensor = torch.tensor(p_cov_vec, dtype=torch.float32, device=device).unsqueeze(0)
+                
+                p_z, _, _ = model.forward_encoder(p_vol_tensor, covariates=p_cov_tensor)
+                save_patient_latent(p_id, p_z)
     
     total_time = time.perf_counter() - start_time
     print(f"[+] Finished training Model {model_idx} in {total_time:.2f}s")

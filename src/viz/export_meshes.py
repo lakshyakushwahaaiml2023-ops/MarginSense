@@ -171,6 +171,21 @@ def export_patient(patient_id: str):
 
     # Compute patient brain mask for alignment
     brain_bool = (image[0] > 0.1)  # T1 channel non-zero → in brain
+    
+    # Compute alignment scale and patient brain mask centroid
+    centroid_template = np.array([0.0055, 0.0689, -0.0351])
+    size_template = np.array([1.5103, 1.6719, 2.0002])
+    brain_indices = np.argwhere(brain_bool)
+    if len(brain_indices) > 0:
+        brain_xyz = np.stack([brain_indices[:, 2], brain_indices[:, 1], brain_indices[:, 0]], axis=1) * spacing
+        min_brain = brain_xyz.min(axis=0)
+        max_brain = brain_xyz.max(axis=0)
+        centroid_patient = (min_brain + max_brain) / 2.0
+        size_patient = max_brain - min_brain
+        scale_factor = np.mean(size_template / size_patient)
+    else:
+        centroid_patient = np.zeros(3)
+        scale_factor = 1.0
 
     # 1. Tumor core surface
     print("[*] Extracting tumor core mesh...")
@@ -241,6 +256,8 @@ def export_patient(patient_id: str):
         "density":          density_64,
         "uncertainty":      uncertainty_64,
         "temporal_densities": temporal_slices,
+        "alignment_scale":    float(scale_factor),
+        "alignment_centroid": centroid_patient.tolist(),
     }
 
     data_js_path = "src/viz/data.js"

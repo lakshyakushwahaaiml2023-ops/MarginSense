@@ -282,6 +282,34 @@
         }
         .dot { display: inline-block; width: 8px; height: 8px; border-radius: 0; margin-right: 4px; }
 
+        #probability-legend {
+            position: absolute; top: 16px; left: 690px;
+            background: #121214;
+            border: 1px solid var(--border); border-radius: 2px;
+            padding: 4px 10px; display: flex; align-items: center; gap: 8px; font-size: 8px;
+            z-index: 5; pointer-events: none;
+            font-family: var(--font-mono);
+        }
+        .color-bar {
+            width: 100px; height: 8px;
+            background: linear-gradient(to right, #0000ff 0%, #00ffff 33%, #ffff00 66%, #ff0000 100%);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .hover-tooltip {
+            position: absolute;
+            background: rgba(10, 10, 12, 0.95);
+            color: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            padding: 4px 8px;
+            font-size: 9px;
+            font-family: var(--font-mono);
+            pointer-events: none;
+            z-index: 10000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
         /* canvas */
         #canvas-wrap { position: absolute; inset: 0; z-index: 1; }
 
@@ -415,6 +443,22 @@
             background: #fef3c7;
             color: #92400e;
             border: 1px solid #fcd34d;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .rpt-computed-flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #e0f7fa;
+            color: #006064;
+            border: 1px solid #b2ebf2;
             border-radius: 2px;
             font-size: 9px;
             font-weight: 700;
@@ -656,8 +700,8 @@
                             <input type="number" name="age" value="58" style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:#fff; font-family:var(--font-mono); font-size:9px; padding:2px 4px; border-radius:2px;">
                         </div>
                         <div>
-                            <label style="font-size:8px; color:var(--muted); text-transform:uppercase;">KPS</label>
-                            <input type="number" name="kps" value="80" style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:#fff; font-family:var(--font-mono); font-size:9px; padding:2px 4px; border-radius:2px;">
+                            <label style="font-size:8px; color:var(--muted); text-transform:uppercase;">KPS: <span id="up-kps-val">80</span></label>
+                            <input type="range" name="kps" min="0" max="100" step="10" value="80" oninput="document.getElementById('up-kps-val').textContent = this.value" style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:#fff; font-family:var(--font-mono); font-size:9px; padding:0; border-radius:2px; height:18px; margin:0; vertical-align:middle; cursor:pointer;">
                         </div>
                         <div>
                             <label style="font-size:8px; color:var(--muted); text-transform:uppercase;">IDH Status</label>
@@ -676,9 +720,10 @@
                         <div>
                             <label style="font-size:8px; color:var(--muted); text-transform:uppercase;">Resection</label>
                             <select name="resection_extent" style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:#fff; font-family:var(--font-sans); font-size:9px; padding:2px 4px; border-radius:2px; height:18px;">
-                                <option value="GTR">GTR</option>
-                                <option value="STR">STR</option>
-                                <option value="Biopsy">Biopsy</option>
+                                <option value="Gross Total">Gross Total</option>
+                                <option value="Subtotal">Subtotal</option>
+                                <option value="Biopsy Only">Biopsy Only</option>
+                                <option value="None">None</option>
                             </select>
                         </div>
                         <div>
@@ -733,16 +778,35 @@
             </div>
             
             <!-- Metadata Panel -->
-            <div id="patient-metadata" style="font-family:var(--font-mono); font-size:8px; color:var(--muted); line-height:1.4; margin-top:8px; display:none; border-top: 1px solid var(--border); padding-top:6px;">
-                <div>Age: <span id="meta-age">-</span> | KPS: <span id="meta-kps">-</span></div>
-                <div>IDH: <span id="meta-idh">-</span> | MGMT: <span id="meta-mgmt">-</span></div>
-                <div>Resection: <span id="meta-resection">-</span> | Laterality: <span id="meta-laterality">-</span></div>
+            <div id="patient-metadata" style="font-family:var(--font-mono); font-size:8.5px; color:var(--muted); line-height:1.5; margin-top:8px; display:none; border-top: 1px solid var(--border); padding-top:6px;">
+                <div style="font-weight:bold; color:#fff; font-size:8px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Patient Features Summary</div>
+                <div style="display:grid; grid-template-columns: 1fr; gap:2px;">
+                    <div>Age: <span id="meta-age" style="color:#fff;">-</span></div>
+                    <div>KPS: <span id="meta-kps" style="color:#fff;">-</span></div>
+                    <div>IDH: <span id="meta-idh" style="color:#fff;">-</span></div>
+                    <div>MGMT: <span id="meta-mgmt" style="color:#fff;">-</span></div>
+                    <div>Resection: <span id="meta-resection" style="color:#fff;">-</span></div>
+                    <div>Laterality: <span id="meta-laterality" style="color:#fff;">-</span></div>
+                    
+                    <div style="border-top: 1px dashed var(--border); margin: 3px 0;"></div>
+                    
+                    <div>Tumor Vol: <span id="meta-volume" style="color:#00e5ff;">-</span> <span style="font-size:7px; background:rgba(0,229,255,0.15); color:#00e5ff; padding:1px 3px; border-radius:2px; font-weight:bold; margin-left:4px;">COMPUTED</span></div>
+                    <div>Hemisphere: <span id="meta-hemisphere" style="color:#00e5ff;">-</span> <span style="font-size:7px; background:rgba(0,229,255,0.15); color:#00e5ff; padding:1px 3px; border-radius:2px; font-weight:bold; margin-left:4px;">COMPUTED</span></div>
+                    <div>Location: <span id="meta-location" style="color:#00e5ff;">-</span> <span style="font-size:7px; background:rgba(0,229,255,0.15); color:#00e5ff; padding:1px 3px; border-radius:2px; font-weight:bold; margin-left:4px;">COMPUTED</span></div>
+                    <div>Ventricle Dist: <span id="meta-ventricle" style="color:#00e5ff;">-</span> <span style="font-size:7px; background:rgba(0,229,255,0.15); color:#00e5ff; padding:1px 3px; border-radius:2px; font-weight:bold; margin-left:4px;">COMPUTED</span></div>
+                    <div>Sphericity: <span id="meta-sphericity" style="color:#00e5ff;">-</span> <span style="font-size:7px; background:rgba(0,229,255,0.15); color:#00e5ff; padding:1px 3px; border-radius:2px; font-weight:bold; margin-left:4px;">COMPUTED</span></div>
+                </div>
             </div>
         </div>
 
         <div class="panel" style="height:148px">
             <div class="panel-title">GPU HARDWARE UTILIZATION</div>
             <div class="chart-wrap"><canvas id="chart-gpu"></canvas></div>
+        </div>
+
+        <div class="panel" style="height:168px">
+            <div class="panel-title">PATIENT LATENT SPACE PROJECTION (PCA)</div>
+            <div class="chart-wrap" style="height: 140px;"><canvas id="chart-latents"></canvas></div>
         </div>
 
         <div class="panel" style="flex: 1">
@@ -803,6 +867,25 @@
                     <input type="checkbox" class="chk-input" id="chk-uncertainty" checked>
                 </label>
             </div>
+            
+            <div class="checkbox-container" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+                <label class="chk-label" for="chk-prob-overlay">
+                    <span>Continuous Probability Overlay (2D)</span>
+                    <input type="checkbox" class="chk-input" id="chk-prob-overlay">
+                </label>
+            </div>
+            <div class="checkbox-container">
+                <label class="chk-label" for="chk-prob-contours">
+                    <span>Show Isoprobability Contours (2D)</span>
+                    <input type="checkbox" class="chk-input" id="chk-prob-contours">
+                </label>
+            </div>
+            <div class="checkbox-container">
+                <label class="chk-label" for="chk-prob-cloud">
+                    <span style="color: #00e5ff; font-weight: 500;">Continuous 3D Probability Cloud</span>
+                    <input type="checkbox" class="chk-input" id="chk-prob-cloud">
+                </label>
+            </div>
         </div>
     </div>
 
@@ -813,6 +896,17 @@
         <span><span class="dot" style="background:#06b6d4"></span>CTV (Standard)</span>
         <span><span class="dot" style="background:#ffaa00"></span>CTV (MarginSense)</span>
     </div>
+
+    <!-- Probability Scale Legend -->
+    <div id="probability-legend">
+        <span>Infiltration Probability:</span>
+        <span>0.0</span>
+        <div class="color-bar"></div>
+        <span>1.0</span>
+    </div>
+
+    <!-- Hover Tooltip -->
+    <div id="hover-tooltip" class="hover-tooltip"></div>
 
     <!-- 2D Radiology Slice Viewer -->
     <div id="slice-viewer">
@@ -915,7 +1009,7 @@
                     <div class="rpt-section-title">&#x25A0; 2 — Input Summary (Clinical Covariates)</div>
                     <div class="rpt-section-body">
                         <div style="font-size:11px; color:#64748b; margin-bottom:14px; font-style:italic;">
-                            Fields marked <span class="rpt-default-flag">&#9651; LIT. DEFAULT</span> were not provided for this patient and used a population-level literature default. These are assumptions, not measured values.
+                            Fields marked <span class="rpt-default-flag">&#9651; LIT. DEFAULT</span> used population defaults. Fields marked <span class="rpt-computed-flag" style="background:#e0f7fa; color:#006064; border-color:#b2ebf2; padding: 1px 4px;">&oplus; COMPUTED</span> were derived automatically from imaging data.
                         </div>
                         <div class="rpt-grid-2" id="rpt-cov-grid" style="gap:12px 32px"></div>
                     </div>
@@ -988,11 +1082,11 @@
 
                 <!-- SECTION 6: Disclaimer (always visible, non-collapsible) -->
                 <div class="rpt-disclaimer">
-                    <div class="disc-title">&#9888; Clinical Disclaimer</div>
+                    <div class="disc-title">&#9888; Clinical & Infiltration Probability Disclaimer</div>
                     Generated by a research prototype. Not a validated clinical tool. Not a substitute for physician judgment.
                     All findings require review by a qualified radiation oncology team before any use in treatment planning.
-                    Uncertainty estimates and spatial predictions are outputs of a physics-informed neural network ensemble
-                    and have not undergone prospective clinical validation.
+                    The tumor infiltration probability field is derived from ensemble agreement across 5 amortized PINN models. This is a model-confidence estimate representing model consensus, not a clinically calibrated probability validated against outcome data.
+                    Uncertainty estimates and spatial predictions are outputs of a physics-informed neural network ensemble and have not undergone prospective clinical validation.
                 </div>
 
             </div><!-- /rpt-body -->
@@ -1065,6 +1159,82 @@ const chartLoss = new Chart(document.getElementById('chart-loss').getContext('2d
     }
 });
 
+// Latents Scatter Plot chart
+const chartLatents = new Chart(document.getElementById('chart-latents').getContext('2d'), {
+    type: 'scatter',
+    data: {
+        datasets: [
+            {
+                label: 'Other Cases',
+                data: [],
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                borderColor: 'rgba(255, 255, 255, 0.4)',
+                borderWidth: 1,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            },
+            {
+                label: 'Active Patient',
+                data: [],
+                backgroundColor: '#00e5ff',
+                borderColor: '#ffffff',
+                borderWidth: 1.5,
+                pointRadius: 7,
+                pointHoverRadius: 9
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.raw.label || '';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: 'rgba(255,255,255,0.03)' },
+                ticks: { display: false }
+            },
+            y: {
+                grid: { color: 'rgba(255,255,255,0.03)' },
+                ticks: { display: false }
+            }
+        }
+    }
+});
+
+async function updateLatentsProjection(currentPatientId) {
+    try {
+        const resp = await fetch(`/api/latents_projection?current=${encodeURIComponent(currentPatientId || '')}`);
+        const data = await resp.json();
+        
+        const othersData = [];
+        const activeData = [];
+        
+        for (const [pid, coords] of Object.entries(data.projections || {})) {
+            const pt = { x: coords[0], y: coords[1], label: pid };
+            if (pid === currentPatientId) {
+                activeData.push(pt);
+            } else {
+                othersData.push(pt);
+            }
+        }
+        
+        chartLatents.data.datasets[0].data = othersData;
+        chartLatents.data.datasets[1].data = activeData;
+        chartLatents.update();
+    } catch (e) {
+        console.warn("Failed to load latents projection:", e);
+    }
+}
+
 // ═══════════════════════════════════════════════════════
 //  2. Three.js Scene
 // ═══════════════════════════════════════════════════════
@@ -1133,6 +1303,7 @@ let brainMesh     = null;
 let tumorMesh     = null;
 let marginMesh    = null;
 let predictedMesh = null;
+let densityPoints = null;
 let currentPatient = null;
 
 const loader = new THREE.GLTFLoader();
@@ -1141,7 +1312,12 @@ function clearScene() {
     [brainMesh, tumorMesh, marginMesh, predictedMesh].forEach(m => {
         if (m) { scene.remove(m); m.geometry?.dispose(); }
     });
-    brainMesh = tumorMesh = marginMesh = predictedMesh = null;
+    if (densityPoints) {
+        scene.remove(densityPoints);
+        densityPoints.geometry?.dispose();
+        densityPoints.material?.dispose();
+    }
+    brainMesh = tumorMesh = marginMesh = predictedMesh = densityPoints = null;
 }
 renderer.physicallyCorrectLights = true;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1154,6 +1330,43 @@ wrap.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
+
+const raycaster = new THREE.Raycaster();
+const mouseVec = new THREE.Vector2();
+
+document.getElementById('canvas-wrap').addEventListener('mousemove', e => {
+    const tooltip = document.getElementById('hover-tooltip');
+    if (!densityPoints || !densityPoints.visible) {
+        tooltip.style.display = 'none';
+        return;
+    }
+    
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouseVec.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseVec.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    raycaster.setFromCamera(mouseVec, camera);
+    raycaster.params.Points.threshold = 0.025; 
+    
+    const intersects = raycaster.intersectObject(densityPoints);
+    if (intersects.length > 0) {
+        const hit = intersects[0];
+        const ptIdx = hit.index;
+        const pt = densityPoints.pointData[ptIdx];
+        if (pt) {
+            tooltip.style.left = (e.clientX + 12) + 'px';
+            tooltip.style.top = (e.clientY + 12) + 'px';
+            tooltip.innerHTML = `<strong>3D Voxel Prob:</strong> ${(pt.p * 100).toFixed(1)}%<br/><span style="color:#00e5ff;font-size:7px;">Voxel: X:${pt.grid[0] * 2} Y:${pt.grid[1] * 2} Z:${pt.grid[2] * 2}</span>`;
+            tooltip.style.display = 'block';
+            return;
+        }
+    }
+    tooltip.style.display = 'none';
+});
+
+document.getElementById('canvas-wrap').addEventListener('mouseleave', () => {
+    document.getElementById('hover-tooltip').style.display = 'none';
+});
 
 // Neutral Lights
 scene.add(new THREE.AmbientLight(0xffffff, 0.55));
@@ -1255,6 +1468,94 @@ async function loadPatientScene(patientId) {
         } catch (e) { console.warn('No predicted margin GLB:', e); }
     }
 
+    // 5. Continuous 3D Probability Cloud (using patientData.density and alignment factors)
+    if (patientData.density && patientData.alignment_scale !== undefined) {
+        try {
+            const density = patientData.density; // flat list of size 64*64*64
+            const shape = patientData.shape || [64, 64, 64];
+            const spacing = patientData.spacing || [1.0, 1.0, 1.0];
+            const scale = patientData.alignment_scale;
+            const centroidPat = patientData.alignment_centroid;
+            const centroidTemp = [0.0055, 0.0689, -0.0351];
+            
+            const positions = [];
+            const colors = [];
+            
+            // Loop through 64³ grid
+            for (let iz = 0; iz < shape[0]; iz++) {
+                for (let iy = 0; iy < shape[1]; iy++) {
+                    for (let ix = 0; ix < shape[2]; ix++) {
+                        const idx = iz * shape[1] * shape[2] + iy * shape[2] + ix;
+                        const val = density[idx];
+                        const p = val / 255.0;
+                        
+                        // Only draw points with probability > 0.05
+                        if (p > 0.05) {
+                            // Compute patient-space voxel coordinate
+                            // Grid spacing is spacing * (128 / 64) = spacing * 2
+                            const px_pat = ix * spacing[0] * 2.0;
+                            const py_pat = iy * spacing[1] * 2.0;
+                            const pz_pat = iz * spacing[2] * 2.0;
+                            
+                            // Align to template space
+                            const tx = (px_pat - centroidPat[0]) * scale + centroidTemp[0];
+                            const ty = (py_pat - centroidPat[1]) * scale + centroidTemp[1];
+                            const tz = (pz_pat - centroidPat[2]) * scale + centroidTemp[2];
+                            
+                            positions.push(tx, ty, tz);
+                            
+                            // Color mapping: blue -> yellow -> red
+                            const c = getProbabilityColor(p);
+                            colors.push(c[0]/255, c[1]/255, c[2]/255);
+                        }
+                    }
+                }
+            }
+            
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const mat = new THREE.PointsMaterial({
+                size: 0.016,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            
+            densityPoints = new THREE.Points(geom, mat);
+            densityPoints.visible = document.getElementById('chk-prob-cloud').checked;
+            scene.add(densityPoints);
+            
+            // Save geometry positions & values for 3D raycast hover tooltips
+            densityPoints.pointData = [];
+            let ptIdx = 0;
+            for (let iz = 0; iz < shape[0]; iz++) {
+                for (let iy = 0; iy < shape[1]; iy++) {
+                    for (let ix = 0; ix < shape[2]; ix++) {
+                        const idx = iz * shape[1] * shape[2] + iy * shape[2] + ix;
+                        const val = density[idx];
+                        const p = val / 255.0;
+                        if (p > 0.05) {
+                            densityPoints.pointData.push({
+                                x: positions[ptIdx * 3],
+                                y: positions[ptIdx * 3 + 1],
+                                z: positions[ptIdx * 3 + 2],
+                                p: p,
+                                grid: [ix, iy, iz]
+                            });
+                            ptIdx++;
+                        }
+                    }
+                }
+            }
+        } catch(e) {
+            console.warn("Failed to build 3D probability cloud:", e);
+        }
+    }
+
     // Set camera to fit the brain template bounds
     camera.position.set(1.1, 0.7, 1.6);
     controls.target.set(0.0, 0.05, -0.05);
@@ -1271,14 +1572,36 @@ async function loadPatientScene(patientId) {
     try {
         const cResp = await fetch(`/api/patient_covariates/${patientId}`);
         const cov = await cResp.json();
+        
+        const getVal = (key, fallback) => {
+            if (cov && cov[key]) {
+                return cov[key].value;
+            }
+            return fallback;
+        };
+        
+        document.getElementById('meta-age').textContent = getVal('age', '58');
+        document.getElementById('meta-kps').textContent = getVal('kps', '80');
+        document.getElementById('meta-idh').textContent = getVal('idh_status', 'Wild-type');
+        document.getElementById('meta-mgmt').textContent = getVal('mgmt_status', 'Unmethylated');
+        document.getElementById('meta-resection').textContent = getVal('resection_extent', 'GTR');
+        document.getElementById('meta-laterality').textContent = getVal('laterality', 'Left');
+        
+        // Auto features
+        const vol = getVal('tumor_volume_cm3', '-');
+        document.getElementById('meta-volume').textContent = (typeof vol === 'number') ? vol.toFixed(2) + ' cm³' : vol;
+        document.getElementById('meta-hemisphere').textContent = getVal('hemisphere', '-');
+        document.getElementById('meta-location').textContent = getVal('tumor_location', '-');
+        
+        const dist = getVal('ventricle_dist_mm', '-');
+        document.getElementById('meta-ventricle').textContent = (typeof dist === 'number') ? dist.toFixed(1) + ' mm' : dist;
+        
+        const sph = getVal('sphericity', '-');
+        document.getElementById('meta-sphericity').textContent = (typeof sph === 'number') ? sph.toFixed(2) : sph;
+        
         document.getElementById('patient-metadata').style.display = 'block';
-        document.getElementById('meta-age').textContent = cov.age || '58';
-        document.getElementById('meta-kps').textContent = cov.kps || '80';
-        document.getElementById('meta-idh').textContent = cov.idh_status || 'Wild-type';
-        document.getElementById('meta-mgmt').textContent = cov.mgmt_status || 'Unmethylated';
-        document.getElementById('meta-resection').textContent = cov.resection_extent || 'GTR';
-        document.getElementById('meta-laterality').textContent = cov.laterality || 'Left';
-    } catch (_) {
+    } catch (e) {
+        console.warn("Could not load covariates:", e);
         document.getElementById('patient-metadata').style.display = 'none';
     }
     
@@ -1286,6 +1609,9 @@ async function loadPatientScene(patientId) {
     if (sliceViewerOpen) {
         initSliceViewer();
     }
+
+    // Update latents PCA projection chart
+    updateLatentsProjection(patientId);
 
     document.getElementById('console-log').textContent = `[+] Scene loaded for ${patientId}.`;
 }
@@ -1344,6 +1670,15 @@ document.getElementById('chk-density').addEventListener('change', e => {
 document.getElementById('chk-uncertainty').addEventListener('change', e => {
     clipPlaneActive = e.target.checked;
     updateClippingPlane();
+});
+document.getElementById('chk-prob-overlay').addEventListener('change', e => {
+    renderAllSlices();
+});
+document.getElementById('chk-prob-contours').addEventListener('change', e => {
+    renderAllSlices();
+});
+document.getElementById('chk-prob-cloud').addEventListener('change', e => {
+    if (densityPoints) densityPoints.visible = e.target.checked;
 });
 
 // ── Patient selector ───────────────────────────────────────────────────
@@ -1665,12 +2000,71 @@ setupCrosshairSync(cvAxial, 0);
 setupCrosshairSync(cvCoronal, 1);
 setupCrosshairSync(cvSagittal, 2);
 
+function setupSliceTooltip(canvas, axis) {
+    const tooltip = document.getElementById('hover-tooltip');
+    
+    canvas.addEventListener('mousemove', e => {
+        const data = canvas.sliceData;
+        if (!data || !data.density_values) {
+            tooltip.style.display = 'none';
+            return;
+        }
+        
+        const rect = canvas.getBoundingClientRect();
+        // Get exact coordinate inside canvas coordinate space (w x h)
+        const px = Math.floor((e.clientX - rect.left) / rect.width * data.width);
+        const py = Math.floor((e.clientY - rect.top) / rect.height * data.height);
+        
+        if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
+            const idx = py * data.width + px;
+            const p = data.density_values[idx] || 0;
+            
+            // Position tooltip near cursor
+            tooltip.style.left = (e.clientX + 12) + 'px';
+            tooltip.style.top = (e.clientY + 12) + 'px';
+            tooltip.innerHTML = `<strong>Infiltration Prob:</strong> ${(p * 100).toFixed(1)}%<br/><span style="color:#8e95a0;font-size:7px;">Coord: X:${px} Y:${py}</span>`;
+            tooltip.style.display = 'block';
+        } else {
+            tooltip.style.display = 'none';
+        }
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+    });
+}
+setupSliceTooltip(cvAxial, 0);
+setupSliceTooltip(cvCoronal, 1);
+setupSliceTooltip(cvSagittal, 2);
+
 async function renderAllSlices() {
     await Promise.all([
         renderSlice(0, sliceIndices.z, cvAxial),
         renderSlice(1, sliceIndices.y, cvCoronal),
         renderSlice(2, sliceIndices.x, cvSagittal)
     ]);
+}
+
+function getProbabilityColor(p) {
+    let r = 0, g = 0, b = 0;
+    if (p < 0.33) {
+        const t = p / 0.33;
+        r = 0;
+        g = Math.round(t * 255);
+        b = 255;
+    } else if (p < 0.66) {
+        const t = (p - 0.33) / 0.33;
+        r = Math.round(t * 255);
+        g = 255;
+        b = Math.round((1 - t) * 255);
+    } else {
+        const t = (p - 0.66) / 0.34;
+        r = 255;
+        g = Math.round((1 - t) * 255);
+        b = 0;
+    }
+    const alpha = p * 0.7; // Scale alpha with probability
+    return [r, g, b, alpha];
 }
 
 async function renderSlice(axis, index, canvas) {
@@ -1683,6 +2077,9 @@ async function renderSlice(axis, index, canvas) {
         const data = await resp.json();
         if (data.error) throw new Error(data.error);
         
+        // Save sliceData for hover tooltips
+        canvas.sliceData = data;
+        
         const ctx = canvas.getContext('2d');
         const w = data.width;
         const h = data.height;
@@ -1691,20 +2088,33 @@ async function renderSlice(axis, index, canvas) {
         
         const imgData = ctx.createImageData(w, h);
         const u8 = data.pixels;
+        const showOverlay = document.getElementById('chk-prob-overlay').checked;
+        const densities = data.density_values;
+        
         for (let i = 0; i < u8.length; i++) {
             const idx = i * 4;
             const val = u8[i];
-            imgData.data[idx]     = val;
-            imgData.data[idx + 1] = val;
-            imgData.data[idx + 2] = val;
+            
+            if (showOverlay && densities && densities[i] > 0.01) {
+                const p = densities[i];
+                const c = getProbabilityColor(p);
+                const a = c[3];
+                imgData.data[idx]     = Math.round((1 - a) * val + a * c[0]);
+                imgData.data[idx + 1] = Math.round((1 - a) * val + a * c[1]);
+                imgData.data[idx + 2] = Math.round((1 - a) * val + a * c[2]);
+            } else {
+                imgData.data[idx]     = val;
+                imgData.data[idx + 1] = val;
+                imgData.data[idx + 2] = val;
+            }
             imgData.data[idx + 3] = 255;
         }
         ctx.putImageData(imgData, 0, 0);
         
-        function drawPolyline(points, color) {
+        function drawPolyline(points, color, lWidth = 1.5) {
             if (!points || points.length < 2) return;
             ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = lWidth;
             ctx.beginPath();
             ctx.moveTo(points[0][1], points[0][0]);
             for (let i = 1; i < points.length; i++) {
@@ -1722,7 +2132,24 @@ async function renderSlice(axis, index, canvas) {
             data.contours.margin.forEach(c => drawPolyline(c, '#06b6d4')); // Cyan (Standard Target Volume)
         }
         if (data.contours.density) {
-            data.contours.density.forEach(c => drawPolyline(c, '#ffaa00')); // Gold (MarginSense Predicted CTV)
+            data.contours.density.forEach(c => drawPolyline(c, '#ffaa00', 2.2)); // Thick Gold (MarginSense Predicted CTV)
+        }
+        
+        // Optional isoprobability contours
+        const showContours = document.getElementById('chk-prob-contours').checked;
+        if (showContours && data.contours) {
+            if (data.contours.probability_95) {
+                data.contours.probability_95.forEach(c => drawPolyline(c, 'rgba(239, 68, 68, 0.85)', 1.0)); // 95% Red
+            }
+            if (data.contours.probability_80) {
+                data.contours.probability_80.forEach(c => drawPolyline(c, 'rgba(249, 115, 22, 0.85)', 1.0)); // 80% Orange
+            }
+            if (data.contours.probability_50) {
+                data.contours.probability_50.forEach(c => drawPolyline(c, 'rgba(234, 179, 8, 0.85)', 1.0)); // 50% Yellow
+            }
+            if (data.contours.probability_20) {
+                data.contours.probability_20.forEach(c => drawPolyline(c, 'rgba(34, 197, 94, 0.85)', 1.0)); // 20% Green
+            }
         }
         
         // Draw crosshairs
@@ -1962,17 +2389,32 @@ async function renderReport(r) {
     covGrid.innerHTML = '';
     const covLabels = {
         age: 'Age', kps: 'KPS Score', idh_status: 'IDH Status',
-        mgmt_status: 'MGMT Status', resection_extent: 'Extent of Resection', laterality: 'Laterality'
+        mgmt_status: 'MGMT Status', resection_extent: 'Extent of Resection', laterality: 'Laterality',
+        tumor_volume_cm3: 'Tumor Volume', hemisphere: 'Hemisphere',
+        tumor_location: 'Tumor Location', ventricle_dist_mm: 'Ventricle Distance', sphericity: 'Sphericity'
     };
     for (const [key, info] of Object.entries(r.covariates || {})) {
         const div = document.createElement('div');
         div.className = 'rpt-field';
-        const flagHtml = info.is_literature_default
-            ? '<span class="rpt-default-flag">&#9651; Lit. Default</span>'
-            : '';
+        let flagHtml = '';
+        if (info.is_literature_default) {
+            flagHtml = '<span class="rpt-default-flag">&#9651; Lit. Default</span>';
+        } else if (info.is_auto_computed) {
+            flagHtml = '<span class="rpt-computed-flag">&oplus; Computed</span>';
+        }
+        
+        let displayVal = info.value;
+        if (key === 'tumor_volume_cm3' && typeof displayVal === 'number') {
+            displayVal = displayVal.toFixed(2) + ' cm³';
+        } else if (key === 'ventricle_dist_mm' && typeof displayVal === 'number') {
+            displayVal = displayVal.toFixed(1) + ' mm';
+        } else if (key === 'sphericity' && typeof displayVal === 'number') {
+            displayVal = displayVal.toFixed(2);
+        }
+        
         div.innerHTML = `
             <span class="rpt-field-label">${covLabels[key] || key}</span>
-            <span class="rpt-field-value">${info.value}${flagHtml}</span>
+            <span class="rpt-field-value">${displayVal}${flagHtml}</span>
         `;
         covGrid.appendChild(div);
     }

@@ -97,14 +97,17 @@ def main():
         volume_in = np.concatenate([image, np.expand_dims(label, axis=0)], axis=0)
         volume_tensor = torch.tensor(volume_in, dtype=torch.float32, device=device).unsqueeze(0)
         
-        cov_vec = load_covariate_vector(patient_id)
+        cov_vec = load_covariate_vector(patient_id, npz_data=data_gt)
         cov_tensor = torch.tensor(cov_vec, dtype=torch.float32, device=device).unsqueeze(0)
         
         embeddings = []
         with torch.no_grad():
-            for model in models:
+            for idx, model in enumerate(models):
                 z_embed, _, _ = model.forward_encoder(volume_tensor, cov_tensor)
                 embeddings.append(z_embed.float())
+                if idx == 0:
+                    from src.models.amortized_pinn import save_patient_latent
+                    save_patient_latent(patient_id, z_embed)
                 
         # Evaluate for each timepoint
         for t in temporal_timepoints:

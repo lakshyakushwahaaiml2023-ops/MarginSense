@@ -1,0 +1,7 @@
+{
+    "tumor_volume_cm3": 42.265,
+    "hemisphere": "Bilateral",
+    "tumor_location": "Insular",
+    "ventricle_dist_mm": 1.0,
+    "sphericity": 1.0
+}

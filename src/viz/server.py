@@ -226,14 +226,57 @@ def upload_progress(patient_id):
 
 @app.route("/api/patient_covariates/<patient_id>")
 def get_patient_covariates(patient_id):
-    """Loads and serves clinical covariates for the patient."""
+    """Loads and serves clinical covariates and auto-derived features for the patient."""
+    from src.preprocess_upload import default_covariates
+    cov = default_covariates()
     cov_path = f"data/processed/{patient_id}_covariates.json"
     if os.path.exists(cov_path):
-        with open(cov_path, "r") as f:
-            return jsonify(json.load(f))
-    # Fallback to defaults
-    from src.preprocess_upload import default_covariates
-    return jsonify(default_covariates())
+        try:
+            with open(cov_path, "r") as f:
+                cov.update(json.load(f))
+        except Exception:
+            pass
+
+    derived = {}
+    derived_path = f"data/processed/{patient_id}_derived_features.json"
+    if os.path.exists(derived_path):
+        try:
+            with open(derived_path, "r") as f:
+                derived = json.load(f)
+        except Exception:
+            pass
+    else:
+        # Check if NPZ exists to compute derived features dynamically
+        npz_path = f"data/processed/{patient_id}.npz"
+        if os.path.exists(npz_path):
+            try:
+                npz_file = np.load(npz_path)
+                from src.compute_features import compute_all_imaging_features
+                lbl = npz_file['label']
+                spc = npz_file['spacing']
+                tmap = npz_file['tissue_map']
+                derived = compute_all_imaging_features(lbl, spc, tmap)
+            except Exception:
+                pass
+
+    # Return merged dict with metadata info
+    response_data = {}
+    # Manual features
+    for k, v in cov.items():
+        if k != "notes":
+            response_data[k] = {
+                "value": v,
+                "is_auto_computed": False
+            }
+            
+    # Auto-computed features
+    for k, v in derived.items():
+        response_data[k] = {
+            "value": v,
+            "is_auto_computed": True
+        }
+        
+    return jsonify(response_data)
 
 @app.route("/api/gpu_status")
 def gpu_status():
@@ -357,7 +400,41 @@ def generate_report(patient_id):
     for key in cov_keys:
         val = raw_cov.get(key, defaults.get(key))
         is_default = str(val) == str(defaults.get(key))
-        covariates_flagged[key] = {"value": val, "is_literature_default": is_default}
+        covariates_flagged[key] = {
+            "value": val,
+            "is_literature_default": is_default,
+            "is_auto_computed": False
+        }
+
+    # Load derived features
+    derived = {}
+    derived_path = f"data/processed/{patient_id}_derived_features.json"
+    if os.path.exists(derived_path):
+        try:
+            with open(derived_path, "r") as f:
+                derived = json.load(f)
+        except Exception:
+            pass
+    else:
+        # fallback/dynamic computation
+        npz_path = f"data/processed/{patient_id}.npz"
+        if os.path.exists(npz_path):
+            try:
+                npz_file = np.load(npz_path)
+                from src.compute_features import compute_all_imaging_features
+                lbl = npz_file['label']
+                spc = npz_file['spacing']
+                tmap = npz_file['tissue_map']
+                derived = compute_all_imaging_features(lbl, spc, tmap)
+            except Exception:
+                pass
+
+    for key, val in derived.items():
+        covariates_flagged[key] = {
+            "value": val,
+            "is_literature_default": False,
+            "is_auto_computed": True
+        }
 
     # ── Extract per-method metrics ───────────────────────────────────────────
     results = comp.get("results", {})
@@ -501,8 +578,14 @@ def generate_report(patient_id):
         "age": "Patient age", "kps": "KPS score",
         "idh_status": "IDH mutation status", "mgmt_status": "MGMT methylation status",
         "resection_extent": "Extent of resection", "laterality": "Tumor laterality",
+        "tumor_volume_cm3": "Tumor Volume (cm³)", "hemisphere": "Hemisphere",
+        "tumor_location": "Tumor Location (Lobe)", "ventricle_dist_mm": "Distance from Ventricles (mm)",
+        "sphericity": "Sphericity"
     }
-    quality_caveats = []
+    quality_caveats = [
+        "Infiltration probability is derived from ensemble agreement across 5 deep learning models; "
+        "it represents a model-confidence estimate, not a clinically calibrated probability validated against outcome data."
+    ]
     for key, info in covariates_flagged.items():
         if info["is_literature_default"]:
             quality_caveats.append(
@@ -517,6 +600,11 @@ def generate_report(patient_id):
         "model_version":     "MarginSense Ensemble v1.0 (5-model amortized PINN)",
         "imaging_sequences": ["T1", "T1ce (Gadolinium)", "T2", "FLAIR"],
         "pipeline_threshold": threshold,
+        "disclaimer": (
+            "The tumor infiltration probability is derived from ensemble agreement across 5 "
+            "amortized PINN models. This is a model-confidence estimate representing model consensus, "
+            "not a clinically calibrated probability validated against outcome data."
+        ),
         "covariates":        covariates_flagged,
         "simulation": {
             "marginsense": {
@@ -691,6 +779,11 @@ def get_slice_data(patient_id, axis, index):
     tumor_c  = get_contours((lbl_sl > 0).astype(float))
     margin_c = get_contours(uni_sl.astype(float) if uni_sl is not None else None)
     density_c= get_contours(den_sl, level=0.35)  if den_sl is not None else []
+    
+    prob_95  = get_contours(den_sl, level=0.95) if den_sl is not None else []
+    prob_80  = get_contours(den_sl, level=0.80) if den_sl is not None else []
+    prob_50  = get_contours(den_sl, level=0.50) if den_sl is not None else []
+    prob_20  = get_contours(den_sl, level=0.20) if den_sl is not None else []
 
     return jsonify({
         'pixels':  pixels,
@@ -700,7 +793,82 @@ def get_slice_data(patient_id, axis, index):
             'tumor':   tumor_c,
             'margin':  margin_c,
             'density': density_c,
-        }
+            'probability_95': prob_95,
+            'probability_80': prob_80,
+            'probability_50': prob_50,
+            'probability_20': prob_20,
+        },
+        'density_values': den_sl.flatten().tolist() if den_sl is not None else None
+    })
+def compute_pca_2d(latents_dict):
+    """
+    Applies PCA using raw numpy to project a dictionary of {patient_id: [64-dim z]} into 2D coordinates.
+    Returns a dictionary of {patient_id: [x, y]}.
+    """
+    import numpy as np
+    
+    # Convert dict to array
+    patient_ids = list(latents_dict.keys())
+    if len(patient_ids) == 0:
+        return {}
+        
+    X = np.array([latents_dict[p_id] for p_id in patient_ids])
+    
+    # If only 1 patient, or all latents are identical, return dummy coordinates
+    if len(patient_ids) < 2 or np.allclose(X, X[0]):
+        return {p_id: [0.0, 0.0] for p_id in patient_ids}
+        
+    # Center the data
+    X_mean = np.mean(X, axis=0)
+    X_centered = X - X_mean
+    
+    # Covariance matrix
+    cov = np.cov(X_centered, rowvar=False)
+    
+    # Eigenvalue decomposition
+    try:
+        eigenvalues, eigenvectors = np.linalg.eigh(cov)
+        # eigh returns sorted in ascending order; get the indices of the top 2 largest
+        idx = np.argsort(eigenvalues)[::-1][:2]
+        top_vectors = eigenvectors[:, idx]
+        
+        # Project data onto top 2 eigenvectors
+        X_projected = np.dot(X_centered, top_vectors)
+        
+        # Construct results
+        res = {}
+        for i, p_id in enumerate(patient_ids):
+            res[p_id] = [float(X_projected[i, 0]), float(X_projected[i, 1])]
+        return res
+    except Exception as e:
+        print(f"[Error] PCA computation failed: {e}")
+        # Fallback to simple first two coordinates if PCA fails
+        return {p_id: [float(latents_dict[p_id][0]), float(latents_dict[p_id][1])] for p_id in patient_ids}
+
+
+@app.route("/api/latents_projection")
+def get_latents_projection():
+    """Computes and returns the 2D PCA projection of all saved patient latent vectors."""
+    import json
+    import os
+    
+    current_patient = request.args.get("current", "").strip()
+    latents_path = "outputs/patient_latents.json"
+    
+    latents_dict = {}
+    if os.path.exists(latents_path):
+        try:
+            with open(latents_path, "r") as f:
+                latents_dict = json.load(f)
+        except Exception:
+            pass
+            
+    # Run PCA
+    projections = compute_pca_2d(latents_dict)
+    
+    return jsonify({
+        "projections": projections,
+        "current_patient": current_patient
     })
 
 

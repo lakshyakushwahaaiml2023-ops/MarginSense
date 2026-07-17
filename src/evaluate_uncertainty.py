@@ -78,15 +78,18 @@ def main():
     mean_density = np.zeros(coords_grid.shape[0], dtype=np.float32)
     std_density = np.zeros(coords_grid.shape[0], dtype=np.float32)
     
-    cov_vec = load_covariate_vector(patient_id)
+    cov_vec = load_covariate_vector(patient_id, npz_data=data)
     cov_tensor = torch.tensor(cov_vec, dtype=torch.float32, device=device).unsqueeze(0)
     
     # Run CNN encoder on the volume for all 5 models to get embeddings
     embeddings = []
     with torch.no_grad():
-        for model in models:
+        for idx, model in enumerate(models):
             z_embed, _, _ = model.forward_encoder(volume_tensor, cov_tensor)
             embeddings.append(z_embed.float())
+            if idx == 0:
+                from src.models.amortized_pinn import save_patient_latent
+                save_patient_latent(patient_id, z_embed)
             
     # Evaluation loop in chunks to prevent CUDA OOM
     chunk_size = 131072
