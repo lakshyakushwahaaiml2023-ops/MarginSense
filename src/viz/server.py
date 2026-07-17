@@ -1546,6 +1546,7 @@ def get_evaluation_metrics():
     METHOD_NAMES = [
         "Clinical Standard (Uniform Margin)",
         "Vanilla PINN (Per-Patient)",
+        "GliODIL (Reproduced)",
         "MarginSense (Ensemble Amortized)",
     ]
     all_results = {m: [] for m in METHOD_NAMES}
@@ -1608,7 +1609,34 @@ def get_evaluation_metrics():
             patient_row["Vanilla PINN (Per-Patient)"] = pinn_metrics
             all_results["Vanilla PINN (Per-Patient)"].append(pinn_metrics)
 
-        # ── Method 3: MarginSense Ensemble ────────────────────────────────────
+        # ── Method 3: GliODIL (Reproduced) ──────────────────────────────────────
+        # Discrete field optimization baseline — per-patient optimization (no amortization)
+        # Runtime is a first-class metric here: shows per-patient optimization cost
+        gliodil_path = f"outputs/{pid}_baseline_gliodil.npz"
+        if os.path.exists(gliodil_path):
+            gliodil_data    = np.load(gliodil_path)
+            gliodil_density = gliodil_data["density"].astype(float)
+            gliodil_mask    = gliodil_density >= ms_threshold
+            gliodil_mask    = gliodil_mask & (tissue_map != 3)
+            gliodil_time    = float(gliodil_data.get("elapsed_time", 0))
+            gliodil_rho     = float(gliodil_data.get("rho", 0.1))
+            gliodil_mem_mb  = float(gliodil_data.get("peak_gpu_memory_mb", 0))
+
+            gliodil_metrics = _compute_method_metrics(
+                gliodil_mask, gt_recurrence, label, spacing,
+                threshold_used=ms_threshold, voxel_vol_cm3=voxel_vol_cm3,
+                surface_tol_mm=surface_tol_mm
+            )
+            gliodil_metrics["inference_time_s"] = round(gliodil_time, 1)   # seconds, prominent
+            gliodil_metrics["gpu_memory_mb"]    = round(gliodil_mem_mb, 1)
+            gliodil_metrics["physics_residual"] = round(
+                _physics_residual_mse(gliodil_density, tissue_map, spacing, rho=gliodil_rho), 6
+            )
+            gliodil_metrics["method_type"] = "per_patient_optimization"   # for dashboard badge
+            patient_row["GliODIL (Reproduced)"] = gliodil_metrics
+            all_results["GliODIL (Reproduced)"].append(gliodil_metrics)
+
+        # ── Method 4: MarginSense Ensemble ────────────────────────────────────
         ens_path = f"outputs/{pid}_prediction_ensemble.npz"
         if os.path.exists(ens_path):
             ens_data   = np.load(ens_path)
@@ -1666,28 +1694,56 @@ def get_evaluation_metrics():
         "surface_dice_tolerance_mm": surface_tol_mm,
         "note":                    f"n={n} patients \u2014 treat as preliminary. "
                                    f"Mean \u00b1 std reported across test set.",
+        "statistical_note": (
+            f"N={n} is below any meaningful statistical threshold. "
+            "No p-values are reported. Comparisons are descriptive and within-patient only."
+        ),
         "methods":                 METHOD_NAMES,
         "per_patient":             per_patient_data,
         "aggregated":              aggregated,
+        # GliODIL paper literature reference — non-comparable, clearly flagged
+        # This block must NEVER be merged into the measured N=4 comparison table.
+        "literature_reference": {
+            "non_comparable": True,
+            "disclaimer": (
+                "GliODIL's published numbers are from their own 152-patient cohort. "
+                "They cannot be directly compared to our N=4 reproduction on different patients. "
+                "These are included as reference context only."
+            ),
+            "source": "Balcerak et al., Nature Communications 2025",
+            "cohort": "N=152 glioblastoma patients",
+            "paper_doi": "10.1038/s41467-024-56098-y",
+            "reported_metrics": {
+                "GliODIL (original paper)": {
+                    "recurrence_coverage_pct": {"reported": "~68%", "vs_standard": "+4pp vs ~64%"},
+                    "cohort_size": 152
+                }
+            }
+        },
         "metric_sections": {
             "clinical_accuracy": [
                 "recurrence_coverage_pct", "sensitivity", "specificity",
                 "margin_volume_cm3", "healthy_tissue_cm3",
                 "hd95_mm", "surface_dice", "asd_mm"
             ],
-            "efficiency": ["inference_time_s"],
+            # inference_time_s and gpu_memory_mb are surfaced prominently in the
+            # Efficiency section so the runtime trade-off between GliODIL
+            # (~minutes, per-patient optimization) and MarginSense (~seconds,
+            # single forward pass) is immediately visible in the dashboard.
+            "efficiency": ["inference_time_s", "gpu_memory_mb"],
             "model_sanity_check": ["physics_residual"],
         },
         "metric_labels": {
             "recurrence_coverage_pct": "Recurrence Coverage (%)",
             "sensitivity":             "Sensitivity",
             "specificity":             "Specificity",
-            "margin_volume_cm3":       "Margin Volume (cm³)",
-            "healthy_tissue_cm3":      "Healthy Tissue Irradiated (cm³)",
+            "margin_volume_cm3":       "Margin Volume (cm\u00b3)",
+            "healthy_tissue_cm3":      "Healthy Tissue Irradiated (cm\u00b3)",
             "hd95_mm":                 "HD95 (mm) [95th-pctl Hausdorff]",
             "surface_dice":            f"Surface Dice @ {surface_tol_mm}mm",
             "asd_mm":                  "Avg Surface Distance (mm)",
-            "inference_time_s":        "Inference Time (s)",
+            "inference_time_s":        "\u23f1 Inference Time (s/patient)",
+            "gpu_memory_mb":           "Peak GPU Memory (MB)",
             "physics_residual":        "Physics Residual MSE [Fisher-KPP]",
         },
     })

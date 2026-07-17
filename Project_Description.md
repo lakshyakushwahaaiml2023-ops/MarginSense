@@ -142,23 +142,23 @@ Factual, template-filled spatial analysis -- no LLM, no free-form text generatio
 
 Displayed in the SPREAD EXPLAINABILITY sidebar panel and in Report Section 6.
 
-### 5.11 Comprehensive Evaluation Module (/api/evaluation_metrics)
+### 5.11 Comprehensive Evaluation Module (/api/evaluation_metrics, src/evaluate_pipeline.py)
 
-Computes all metrics across the test set, per patient, per method, aggregated as mean +/- std:
+MarginSense features a complete, quantitative validation module consisting of two parts:
+1. **Interactive Evaluation Dashboard API (`/api/evaluation_metrics`)**: Dynamic query endpoint returning mean ± std across cached test-set ensemble predictions.
+2. **Leave-One-Out Cross-Validation (LOOCV) Pipeline (`src/evaluate_pipeline.py`)**: A command-line evaluation framework that splits the dataset, trains the amortized network from scratch on $N-1$ patients (ensuring zero overlap or data leakage), and validates on the held-out patient at every epoch to log train-vs-validation curves.
 
-Clinical Accuracy metrics:
-- Recurrence Coverage (%) -- TP / total recurrence voxels
-- Sensitivity / Specificity -- voxel-wise at stated threshold, threshold always stated alongside
-- Margin Volume and Healthy Tissue (cm3) -- always reported together; standalone volume is meaningless
-- HD95 (mm) -- 95th-percentile Hausdorff, NOT raw max. Raw max Hausdorff is dominated by a single stray misclassified voxel; HD95 is the BraTS benchmark standard (Menze et al., IEEE TMI 2015)
-- Surface Dice @ 2mm -- explicit 2mm tolerance stated in every display; tolerance changes the number significantly
-- Average Surface Distance (mm) -- symmetric mean boundary-to-boundary
+Metrics evaluated side-by-side (Clinical Standard vs. Vanilla PINN vs. MarginSense):
+- **Recurrence Coverage (%)** — fraction of post-treatment recurrence captured.
+- **Sensitivity / Specificity** — voxel-wise sensitivity and specificity computed at the optimized threshold.
+- **Margin Volume and Healthy Tissue Irradiated (cm³)** — spatial toxicity metrics.
+- **Hausdorff Distance (HD95, mm)** — 95th-percentile symmetric surface distance to exclude single-voxel noise, following the BraTS benchmark standard (Menze et al., IEEE TMI 2015).
+- **Surface Dice @ 2mm** — surface-to-surface alignment index at a 2mm tolerance.
+- **Average Surface Distance (ASD, mm)** — average boundary-to-boundary distance.
+- **Efficiency Metrics** — inference/grid evaluation time (seconds) and peak GPU memory allocation (MB) monitored dynamically during the prediction forward passes.
+- **Model Sanity Check** — spatial physics consistency reported as the Mean Squared PDE Residual (Fisher-KPP) over white and gray matter brain voxels (labeled separately from clinical metrics).
 
-Efficiency: Inference Time (s) from saved NPZ metadata.
-
-Model Sanity Check (labeled separately, NOT mixed into clinical accuracy): Fisher-KPP Physics Residual MSE -- mean squared residual of nabla.(D*nabla*c) + rho*c*(1-c) evaluated on the model own predicted field using scipy finite differences. Lower MSE means the network better satisfies its governing equation.
-
-All results displayed with mean +/- std per cell, [min - max] range, amber small-N warning banner (n=3 patients -- treat as preliminary), and a collapsible per-patient detail table.
+All comparative reports are exported as machine-readable JSON/CSV files and a presentation-ready Markdown table, displaying `mean ± std (min - max)` and a prominent small-N banner (N=4 patients) warning of preliminary, exploratory findings.
 
 Methods compared: Clinical Standard (uniform 1.5cm), Vanilla PINN (per-patient), MarginSense (ensemble amortized).
 
@@ -216,7 +216,7 @@ A full-stack web application (Flask + Three.js).
 | No LLM in explainability | Template-filled with computed values: fully deterministic, reproducible, auditable |
 | scipy EDT for surface metrics, not medpy | medpy not installed; scipy distance_transform_edt produces identical results |
 | Fixed disclaimer always appended to explainability | Outputs reflect statistical association, not verified causal mechanism |
-| Small-N amber banner on evaluation | n=3 synthetic patients -- numeric results presented with accurate confidence framing |
+| Small-N amber banner on evaluation | N=4 patients -- numeric results presented with accurate confidence framing |
 
 ---
 
@@ -240,7 +240,7 @@ A full-stack web application (Flask + Three.js).
 - Automatic GTV segmentation uses intensity thresholding -- not a validated clinical segmentation method
 - Improvement on average does not guarantee improvement for every individual patient; the uncertainty map is designed to communicate this variability, not hide it
 - The ensemble captures epistemic (model) uncertainty, not aleatoric (MRI acquisition noise) uncertainty
-- Small test set (n=3 synthetic patients) -- all quantitative results are explicitly labeled treat as preliminary
+- Small dataset size (N=4 patients) -- all cross-validation and quantitative results are explicitly labeled to treat as preliminary, exploratory evidence rather than statistically validated findings
 
 ---
 

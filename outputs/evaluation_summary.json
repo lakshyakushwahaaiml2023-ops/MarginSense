@@ -1,0 +1,594 @@
+{
+    "N": 4,
+    "patient_ids": [
+        "synthetic_patient_1",
+        "synthetic_patient_2",
+        "synthetic_patient_3",
+        "test_patient"
+    ],
+    "threshold": 0.35,
+    "caveat": "N=4 is extremely small. All results are preliminary and should be read as exploratory evidence, not statistically validated clinical findings.",
+    "patient_specific_results": {
+        "synthetic_patient_1": {
+            "Clinical Standard (Uniform Margin)": {
+                "recurrence_coverage_pct": 100.0,
+                "sensitivity": 1.0,
+                "specificity": 0.9403,
+                "margin_volume_cm3": 127.858,
+                "healthy_tissue_cm3": 127.858,
+                "hd95_mm": 15.75,
+                "surface_dice": 0.0,
+                "asd_mm": 13.31,
+                "threshold_used": "1.5cm expansion",
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.23446550000517163,
+                "gpu_memory_mb": 0.0,
+                "physics_residual": null
+            },
+            "Vanilla PINN (Per-Patient)": {
+                "recurrence_coverage_pct": 99.38,
+                "sensitivity": 0.9938,
+                "specificity": 0.0603,
+                "margin_volume_cm3": 1947.396,
+                "healthy_tissue_cm3": 1947.396,
+                "hd95_mm": 78.0,
+                "surface_dice": 0.0216,
+                "asd_mm": 34.68,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 35.90723910019733,
+                "gpu_memory_mb": 67.5,
+                "physics_residual": 0.006408
+            },
+            "MarginSense (Amortized PINN)": {
+                "recurrence_coverage_pct": 98.78,
+                "sensitivity": 0.9878,
+                "specificity": 0.9221,
+                "margin_volume_cm3": 165.309,
+                "healthy_tissue_cm3": 165.309,
+                "hd95_mm": 34.07,
+                "surface_dice": 0.1479,
+                "asd_mm": 10.85,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.2209681999956956,
+                "gpu_memory_mb": 192.00146484375,
+                "physics_residual": 1.352297
+            }
+        },
+        "synthetic_patient_2": {
+            "Clinical Standard (Uniform Margin)": {
+                "recurrence_coverage_pct": 100.0,
+                "sensitivity": 1.0,
+                "specificity": 0.9228,
+                "margin_volume_cm3": 164.666,
+                "healthy_tissue_cm3": 164.666,
+                "hd95_mm": 15.81,
+                "surface_dice": 0.0,
+                "asd_mm": 13.33,
+                "threshold_used": "1.5cm expansion",
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.17671050000353716,
+                "gpu_memory_mb": 0.0,
+                "physics_residual": null
+            },
+            "Vanilla PINN (Per-Patient)": {
+                "recurrence_coverage_pct": 100.0,
+                "sensitivity": 1.0,
+                "specificity": 0.0726,
+                "margin_volume_cm3": 1906.203,
+                "healthy_tissue_cm3": 1906.203,
+                "hd95_mm": 75.0,
+                "surface_dice": 0.0114,
+                "asd_mm": 37.11,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 33.49104890000308,
+                "gpu_memory_mb": 65.0,
+                "physics_residual": 0.006427
+            },
+            "MarginSense (Amortized PINN)": {
+                "recurrence_coverage_pct": 88.29,
+                "sensitivity": 0.8829,
+                "specificity": 0.9409,
+                "margin_volume_cm3": 122.903,
+                "healthy_tissue_cm3": 122.903,
+                "hd95_mm": 28.86,
+                "surface_dice": 0.2038,
+                "asd_mm": 9.28,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.3350754999992205,
+                "gpu_memory_mb": 192.0,
+                "physics_residual": 1.076528
+            }
+        },
+        "synthetic_patient_3": {
+            "Clinical Standard (Uniform Margin)": {
+                "recurrence_coverage_pct": 100.0,
+                "sensitivity": 1.0,
+                "specificity": 0.9347,
+                "margin_volume_cm3": 139.81,
+                "healthy_tissue_cm3": 139.81,
+                "hd95_mm": 15.78,
+                "surface_dice": 0.0,
+                "asd_mm": 13.32,
+                "threshold_used": "1.5cm expansion",
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.16724979999708012,
+                "gpu_memory_mb": 0.0,
+                "physics_residual": null
+            },
+            "Vanilla PINN (Per-Patient)": {
+                "recurrence_coverage_pct": 96.71,
+                "sensitivity": 0.9671,
+                "specificity": 0.9473,
+                "margin_volume_cm3": 112.667,
+                "healthy_tissue_cm3": 112.667,
+                "hd95_mm": 22.02,
+                "surface_dice": 0.1535,
+                "asd_mm": 9.03,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 51.59440099999483,
+                "gpu_memory_mb": 65.0,
+                "physics_residual": 0.002792
+            },
+            "MarginSense (Amortized PINN)": {
+                "recurrence_coverage_pct": 98.21,
+                "sensitivity": 0.9821,
+                "specificity": 0.8905,
+                "margin_volume_cm3": 230.322,
+                "healthy_tissue_cm3": 230.322,
+                "hd95_mm": 39.65,
+                "surface_dice": 0.1282,
+                "asd_mm": 12.32,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.3540900999942096,
+                "gpu_memory_mb": 192.0,
+                "physics_residual": 0.991151
+            }
+        },
+        "test_patient": {
+            "Clinical Standard (Uniform Margin)": {
+                "recurrence_coverage_pct": 100.0,
+                "sensitivity": 1.0,
+                "specificity": 0.0334,
+                "margin_volume_cm3": 29.878,
+                "healthy_tissue_cm3": 29.878,
+                "hd95_mm": 14.88,
+                "surface_dice": 0.0,
+                "asd_mm": 10.71,
+                "threshold_used": "1.5cm expansion",
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.827489199989941,
+                "gpu_memory_mb": 0.0,
+                "physics_residual": null
+            },
+            "Vanilla PINN (Per-Patient)": {
+                "recurrence_coverage_pct": 100.0,
+                "sensitivity": 1.0,
+                "specificity": 0.0533,
+                "margin_volume_cm3": 29.261,
+                "healthy_tissue_cm3": 29.261,
+                "hd95_mm": 15.63,
+                "surface_dice": 0.2246,
+                "asd_mm": 4.07,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 38.822825600000215,
+                "gpu_memory_mb": 65.0,
+                "physics_residual": 0.006518
+            },
+            "MarginSense (Amortized PINN)": {
+                "recurrence_coverage_pct": 87.79,
+                "sensitivity": 0.8779,
+                "specificity": 0.9701,
+                "margin_volume_cm3": 0.923,
+                "healthy_tissue_cm3": 0.923,
+                "hd95_mm": 4.02,
+                "surface_dice": 0.7953,
+                "asd_mm": 1.07,
+                "threshold_used": 0.35,
+                "surface_dice_tolerance_mm": 2.0,
+                "inference_time_s": 0.547966300000553,
+                "gpu_memory_mb": 192.0,
+                "physics_residual": 2.375709
+            }
+        }
+    },
+    "aggregated_results": {
+        "Clinical Standard (Uniform Margin)": {
+            "recurrence_coverage_pct": {
+                "mean": 100.0,
+                "std": 0.0,
+                "min": 100.0,
+                "max": 100.0,
+                "raw": [
+                    100.0,
+                    100.0,
+                    100.0,
+                    100.0
+                ]
+            },
+            "sensitivity": {
+                "mean": 1.0,
+                "std": 0.0,
+                "min": 1.0,
+                "max": 1.0,
+                "raw": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "specificity": {
+                "mean": 0.7078,
+                "std": 0.3894163003778861,
+                "min": 0.0334,
+                "max": 0.9403,
+                "raw": [
+                    0.9403,
+                    0.9228,
+                    0.9347,
+                    0.0334
+                ]
+            },
+            "margin_volume_cm3": {
+                "mean": 115.553,
+                "std": 51.2154944035494,
+                "min": 29.878,
+                "max": 164.666,
+                "raw": [
+                    127.858,
+                    164.666,
+                    139.81,
+                    29.878
+                ]
+            },
+            "healthy_tissue_cm3": {
+                "mean": 115.553,
+                "std": 51.2154944035494,
+                "min": 29.878,
+                "max": 164.666,
+                "raw": [
+                    127.858,
+                    164.666,
+                    139.81,
+                    29.878
+                ]
+            },
+            "hd95_mm": {
+                "mean": 15.555000000000001,
+                "std": 0.39028835493773023,
+                "min": 14.88,
+                "max": 15.81,
+                "raw": [
+                    15.75,
+                    15.81,
+                    15.78,
+                    14.88
+                ]
+            },
+            "surface_dice": {
+                "mean": 0.0,
+                "std": 0.0,
+                "min": 0.0,
+                "max": 0.0,
+                "raw": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "asd_mm": {
+                "mean": 12.6675,
+                "std": 1.130185272422181,
+                "min": 10.71,
+                "max": 13.33,
+                "raw": [
+                    13.31,
+                    13.33,
+                    13.32,
+                    10.71
+                ]
+            },
+            "inference_time_s": {
+                "mean": 0.35147874999893247,
+                "std": 0.2760264010923515,
+                "min": 0.16724979999708012,
+                "max": 0.827489199989941,
+                "raw": [
+                    0.23446550000517163,
+                    0.17671050000353716,
+                    0.16724979999708012,
+                    0.827489199989941
+                ]
+            },
+            "gpu_memory_mb": {
+                "mean": 0.0,
+                "std": 0.0,
+                "min": 0.0,
+                "max": 0.0,
+                "raw": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "physics_residual": null
+        },
+        "Vanilla PINN (Per-Patient)": {
+            "recurrence_coverage_pct": {
+                "mean": 99.0225,
+                "std": 1.358903510187536,
+                "min": 96.71,
+                "max": 100.0,
+                "raw": [
+                    99.38,
+                    100.0,
+                    96.71,
+                    100.0
+                ]
+            },
+            "sensitivity": {
+                "mean": 0.990225,
+                "std": 0.013589035101875355,
+                "min": 0.9671,
+                "max": 1.0,
+                "raw": [
+                    0.9938,
+                    1.0,
+                    0.9671,
+                    1.0
+                ]
+            },
+            "specificity": {
+                "mean": 0.283375,
+                "std": 0.3833795337195245,
+                "min": 0.0533,
+                "max": 0.9473,
+                "raw": [
+                    0.0603,
+                    0.0726,
+                    0.9473,
+                    0.0533
+                ]
+            },
+            "margin_volume_cm3": {
+                "mean": 998.88175,
+                "std": 928.5004193729196,
+                "min": 29.261,
+                "max": 1947.396,
+                "raw": [
+                    1947.396,
+                    1906.203,
+                    112.667,
+                    29.261
+                ]
+            },
+            "healthy_tissue_cm3": {
+                "mean": 998.88175,
+                "std": 928.5004193729196,
+                "min": 29.261,
+                "max": 1947.396,
+                "raw": [
+                    1947.396,
+                    1906.203,
+                    112.667,
+                    29.261
+                ]
+            },
+            "hd95_mm": {
+                "mean": 47.6625,
+                "std": 28.945300460523814,
+                "min": 15.63,
+                "max": 78.0,
+                "raw": [
+                    78.0,
+                    75.0,
+                    22.02,
+                    15.63
+                ]
+            },
+            "surface_dice": {
+                "mean": 0.102775,
+                "std": 0.08993487574350675,
+                "min": 0.0114,
+                "max": 0.2246,
+                "raw": [
+                    0.0216,
+                    0.0114,
+                    0.1535,
+                    0.2246
+                ]
+            },
+            "asd_mm": {
+                "mean": 21.222499999999997,
+                "std": 14.801877203584686,
+                "min": 4.07,
+                "max": 37.11,
+                "raw": [
+                    34.68,
+                    37.11,
+                    9.03,
+                    4.07
+                ]
+            },
+            "inference_time_s": {
+                "mean": 39.953878650048864,
+                "std": 6.980768252959617,
+                "min": 33.49104890000308,
+                "max": 51.59440099999483,
+                "raw": [
+                    35.90723910019733,
+                    33.49104890000308,
+                    51.59440099999483,
+                    38.822825600000215
+                ]
+            },
+            "gpu_memory_mb": {
+                "mean": 65.625,
+                "std": 1.0825317547305484,
+                "min": 65.0,
+                "max": 67.5,
+                "raw": [
+                    67.5,
+                    65.0,
+                    65.0,
+                    65.0
+                ]
+            },
+            "physics_residual": {
+                "mean": 0.0055362499999999995,
+                "std": 0.0015849388592308537,
+                "min": 0.002792,
+                "max": 0.006518,
+                "raw": [
+                    0.006408,
+                    0.006427,
+                    0.002792,
+                    0.006518
+                ]
+            }
+        },
+        "MarginSense (Amortized PINN)": {
+            "recurrence_coverage_pct": {
+                "mean": 93.2675,
+                "std": 5.234368992533862,
+                "min": 87.79,
+                "max": 98.78,
+                "raw": [
+                    98.78,
+                    88.29,
+                    98.21,
+                    87.79
+                ]
+            },
+            "sensitivity": {
+                "mean": 0.932675,
+                "std": 0.05234368992533865,
+                "min": 0.8779,
+                "max": 0.9878,
+                "raw": [
+                    0.9878,
+                    0.8829,
+                    0.9821,
+                    0.8779
+                ]
+            },
+            "specificity": {
+                "mean": 0.9309,
+                "std": 0.02892334697091607,
+                "min": 0.8905,
+                "max": 0.9701,
+                "raw": [
+                    0.9221,
+                    0.9409,
+                    0.8905,
+                    0.9701
+                ]
+            },
+            "margin_volume_cm3": {
+                "mean": 129.86425,
+                "std": 83.69945458416979,
+                "min": 0.923,
+                "max": 230.322,
+                "raw": [
+                    165.309,
+                    122.903,
+                    230.322,
+                    0.923
+                ]
+            },
+            "healthy_tissue_cm3": {
+                "mean": 129.86425,
+                "std": 83.69945458416979,
+                "min": 0.923,
+                "max": 230.322,
+                "raw": [
+                    165.309,
+                    122.903,
+                    230.322,
+                    0.923
+                ]
+            },
+            "hd95_mm": {
+                "mean": 26.65,
+                "std": 13.611184739029884,
+                "min": 4.02,
+                "max": 39.65,
+                "raw": [
+                    34.07,
+                    28.86,
+                    39.65,
+                    4.02
+                ]
+            },
+            "surface_dice": {
+                "mean": 0.3188,
+                "std": 0.27650154610779304,
+                "min": 0.1282,
+                "max": 0.7953,
+                "raw": [
+                    0.1479,
+                    0.2038,
+                    0.1282,
+                    0.7953
+                ]
+            },
+            "asd_mm": {
+                "mean": 8.38,
+                "std": 4.355186563168104,
+                "min": 1.07,
+                "max": 12.32,
+                "raw": [
+                    10.85,
+                    9.28,
+                    12.32,
+                    1.07
+                ]
+            },
+            "inference_time_s": {
+                "mean": 0.3645250249974197,
+                "std": 0.11751109049978326,
+                "min": 0.2209681999956956,
+                "max": 0.547966300000553,
+                "raw": [
+                    0.2209681999956956,
+                    0.3350754999992205,
+                    0.3540900999942096,
+                    0.547966300000553
+                ]
+            },
+            "gpu_memory_mb": {
+                "mean": 192.0003662109375,
+                "std": 0.0006342959500374307,
+                "min": 192.0,
+                "max": 192.00146484375,
+                "raw": [
+                    192.00146484375,
+                    192.0,
+                    192.0,
+                    192.0
+                ]
+            },
+            "physics_residual": {
+                "mean": 1.44892125,
+                "std": 0.5514757731915225,
+                "min": 0.991151,
+                "max": 2.375709,
+                "raw": [
+                    1.352297,
+                    1.076528,
+                    0.991151,
+                    2.375709
+                ]
+            }
+        }
+    }
+}

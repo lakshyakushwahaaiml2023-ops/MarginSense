@@ -1,0 +1,34 @@
+Method,Metric,Mean,Std,Min,Max
+Clinical Standard (Uniform Margin),recurrence_coverage_pct,100.0,0.0,100.0,100.0
+Clinical Standard (Uniform Margin),sensitivity,1.0,0.0,1.0,1.0
+Clinical Standard (Uniform Margin),specificity,0.7078,0.3894163003778861,0.0334,0.9403
+Clinical Standard (Uniform Margin),margin_volume_cm3,115.553,51.2154944035494,29.878,164.666
+Clinical Standard (Uniform Margin),healthy_tissue_cm3,115.553,51.2154944035494,29.878,164.666
+Clinical Standard (Uniform Margin),hd95_mm,15.555000000000001,0.39028835493773023,14.88,15.81
+Clinical Standard (Uniform Margin),surface_dice,0.0,0.0,0.0,0.0
+Clinical Standard (Uniform Margin),asd_mm,12.6675,1.130185272422181,10.71,13.33
+Clinical Standard (Uniform Margin),inference_time_s,0.35147874999893247,0.2760264010923515,0.16724979999708012,0.827489199989941
+Clinical Standard (Uniform Margin),gpu_memory_mb,0.0,0.0,0.0,0.0
+Clinical Standard (Uniform Margin),physics_residual,N/A,N/A,N/A,N/A
+Vanilla PINN (Per-Patient),recurrence_coverage_pct,99.0225,1.358903510187536,96.71,100.0
+Vanilla PINN (Per-Patient),sensitivity,0.990225,0.013589035101875355,0.9671,1.0
+Vanilla PINN (Per-Patient),specificity,0.283375,0.3833795337195245,0.0533,0.9473
+Vanilla PINN (Per-Patient),margin_volume_cm3,998.88175,928.5004193729196,29.261,1947.396
+Vanilla PINN (Per-Patient),healthy_tissue_cm3,998.88175,928.5004193729196,29.261,1947.396
+Vanilla PINN (Per-Patient),hd95_mm,47.6625,28.945300460523814,15.63,78.0
+Vanilla PINN (Per-Patient),surface_dice,0.102775,0.08993487574350675,0.0114,0.2246
+Vanilla PINN (Per-Patient),asd_mm,21.222499999999997,14.801877203584686,4.07,37.11
+Vanilla PINN (Per-Patient),inference_time_s,39.953878650048864,6.980768252959617,33.49104890000308,51.59440099999483
+Vanilla PINN (Per-Patient),gpu_memory_mb,65.625,1.0825317547305484,65.0,67.5
+Vanilla PINN (Per-Patient),physics_residual,0.0055362499999999995,0.0015849388592308537,0.002792,0.006518
+MarginSense (Amortized PINN),recurrence_coverage_pct,93.2675,5.234368992533862,87.79,98.78
+MarginSense (Amortized PINN),sensitivity,0.932675,0.05234368992533865,0.8779,0.9878
+MarginSense (Amortized PINN),specificity,0.9309,0.02892334697091607,0.8905,0.9701
+MarginSense (Amortized PINN),margin_volume_cm3,129.86425,83.69945458416979,0.923,230.322
+MarginSense (Amortized PINN),healthy_tissue_cm3,129.86425,83.69945458416979,0.923,230.322
+MarginSense (Amortized PINN),hd95_mm,26.65,13.611184739029884,4.02,39.65
+MarginSense (Amortized PINN),surface_dice,0.3188,0.27650154610779304,0.1282,0.7953
+MarginSense (Amortized PINN),asd_mm,8.38,4.355186563168104,1.07,12.32
+MarginSense (Amortized PINN),inference_time_s,0.3645250249974197,0.11751109049978326,0.2209681999956956,0.547966300000553
+MarginSense (Amortized PINN),gpu_memory_mb,192.0003662109375,0.0006342959500374307,192.0,192.00146484375
+MarginSense (Amortized PINN),physics_residual,1.44892125,0.5514757731915225,0.991151,2.375709

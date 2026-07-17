@@ -169,8 +169,8 @@
 
         /* Bottom controls */
         #bottom-bar {
-            position: absolute; bottom: 16px; left: 332px; right: 332px;
-            z-index: 10; background: var(--panel);
+            position: absolute; bottom: 80px; left: 332px; right: 332px;
+            z-index: 15; background: var(--panel);
             border: 1px solid var(--border); border-radius: 2px;
             padding: 10px 18px; display: flex; align-items: center; gap: 14px;
         }
@@ -2912,12 +2912,21 @@ animate();
 const METHOD_SHORT = {
     "Clinical Standard (Uniform Margin)": "Standard Margin",
     "Vanilla PINN (Per-Patient)":         "Vanilla PINN",
+    "GliODIL (Reproduced)":               "GliODIL (Repro)",
     "MarginSense (Ensemble Amortized)":   "MarginSense",
 };
 const METHOD_COLORS = {
     "Clinical Standard (Uniform Margin)": "#22d3ee",
     "Vanilla PINN (Per-Patient)":         "#f59e0b",
+    "GliODIL (Reproduced)":               "#f97316",   // orange — distinct from MarginSense
     "MarginSense (Ensemble Amortized)":   "#a78bfa",
+};
+// Badge label shown next to method name in efficiency section
+const METHOD_TYPE_BADGE = {
+    "GliODIL (Reproduced)":             { label: "per-patient opt.", color: "#f97316" },
+    "Vanilla PINN (Per-Patient)":       { label: "per-patient opt.", color: "#f59e0b" },
+    "MarginSense (Ensemble Amortized)": { label: "single fwd pass",  color: "#a78bfa" },
+    "Clinical Standard (Uniform Margin)": { label: "geometric",      color: "#22d3ee" },
 };
 
 let evalData = null;
@@ -2953,7 +2962,6 @@ function _buildAggTable(data, metrics) {
     html += '</tr></thead><tbody>';
 
     metrics.forEach(key => {
-        const isMS = true;
         html += '<tr>';
         html += `<td class="row-hdr">${labels[key] || key}</td>`;
         methods.forEach(m => {
@@ -2964,10 +2972,22 @@ function _buildAggTable(data, metrics) {
             if (!v) {
                 html += `<td ${tdStyle} style="color:#3d3d46;">—</td>`;
             } else {
+                // For inference time, show minutes conversion for long-running methods
+                let displayMean = v.mean;
+                let displayStd  = v.std;
+                let displayMin  = v.min;
+                let displayMax  = v.max;
+                let extraNote   = '';
+                if (key === 'inference_time_s' && v.mean > 30) {
+                    extraNote = `<span class="range" style="color:#f97316;font-size:8px;">⚡ ~${(v.mean/60).toFixed(1)} min/patient</span>`;
+                } else if (key === 'inference_time_s' && v.mean < 1) {
+                    extraNote = `<span class="range" style="color:#a78bfa;font-size:8px;">⚡ single fwd pass</span>`;
+                }
                 html += `<td ${tdStyle}>
-                    <span class="mean-val">${v.mean}</span>
-                    <span class="pm"> ± ${v.std}</span>
-                    <span class="range">[${v.min} – ${v.max}]</span>
+                    <span class="mean-val">${displayMean}</span>
+                    <span class="pm"> ± ${displayStd}</span>
+                    <span class="range">[${displayMin} – ${displayMax}]</span>
+                    ${extraNote}
                 </td>`;
             }
         });
@@ -2975,6 +2995,38 @@ function _buildAggTable(data, metrics) {
     });
 
     html += '</tbody></table>';
+
+    // ── Section B: Literature Reference (non-comparable) ──────────────────
+    // Visually separated with a divider and muted grey styling.
+    // MUST NOT be presented as a direct comparison row with the N=4 data above.
+    if (data.literature_reference && metrics.includes('recurrence_coverage_pct')) {
+        const lr = data.literature_reference;
+        html += `
+        <div style="margin-top:16px; border-top: 1px dashed #2d3748; padding-top:10px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="background:#374151; color:#f59e0b; font-size:8px; font-weight:700; padding:2px 6px; border-radius:3px;">⚠ NON-COMPARABLE REFERENCE</span>
+                <span style="color:#4b5563; font-size:9px; font-family:'IBM Plex Mono',monospace;">Different cohort — NOT from our N=4 test set</span>
+            </div>
+            <table class="eval-tbl" style="opacity:0.65;">
+                <thead><tr>
+                    <th class="row-hdr" style="color:#4b5563;">Literature Source</th>
+                    <th style="color:#6b7280;">Recurrence Coverage</th>
+                    <th style="color:#6b7280;">Cohort</th>
+                    <th style="color:#6b7280;">Source</th>
+                </tr></thead>
+                <tbody><tr>
+                    <td class="row-hdr" style="color:#6b7280;">GliODIL (original paper)</td>
+                    <td style="color:#9ca3af;">~68% (+4pp vs. ~64% standard)</td>
+                    <td style="color:#6b7280;">N=152 GBM patients</td>
+                    <td style="color:#6b7280;">Balcerak et al., Nat. Comm. 2025</td>
+                </tr></tbody>
+            </table>
+            <div style="margin-top:6px; color:#374151; font-size:8px; font-family:'IBM Plex Mono',monospace; font-style:italic;">
+                ${lr.disclaimer}
+            </div>
+        </div>`;
+    }
+
     return html;
 }
 

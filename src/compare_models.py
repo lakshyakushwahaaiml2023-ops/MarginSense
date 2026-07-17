@@ -49,16 +49,18 @@ def main():
     print(f"[*] Density Threshold for PINNs: {args.threshold}")
     
     # Define script outputs
-    uniform_out = f"outputs/{patient_id}_baseline_uniform.npz"
-    pinn_out = f"outputs/{patient_id}_baseline_pinn.npz"
-    ensemble_out = f"outputs/{patient_id}_prediction_ensemble.npz"
+    uniform_out   = f"outputs/{patient_id}_baseline_uniform.npz"
+    pinn_out      = f"outputs/{patient_id}_baseline_pinn.npz"
+    ensemble_out  = f"outputs/{patient_id}_prediction_ensemble.npz"
+    gliodil_out   = f"outputs/{patient_id}_baseline_gliodil.npz"
     
     # 2. Run baseline models if their output files are missing
     # We run the sub-scripts normally (without --synthetic) so that they load the 
-    # actual preprocessed NHz file from data/processed/{patient_id}.npz
+    # actual preprocessed .npz file from data/processed/{patient_id}.npz
     run_script_if_missing("src/baseline_uniform_margin.py", patient_id, uniform_out, [])
     run_script_if_missing("src/baseline_vanilla_pinn.py", patient_id, pinn_out, ["--epochs", "500"])
     run_script_if_missing("src/evaluate_uncertainty.py", patient_id, ensemble_out, [])
+    run_script_if_missing("src/baseline_gliodil.py", patient_id, gliodil_out, ["--iters", "1000"])
     
     # 3. Load processed ground-truth and outputs
     data_gt = np.load(processed_path)
@@ -91,8 +93,16 @@ def main():
     ensemble_mean = data_ensemble['mean_density']
     ensemble_time = data_ensemble['inference_time']
     ensemble_mask = (ensemble_mean >= args.threshold).astype(np.int8)
+
+    # Load GliODIL (Reproduced) — discrete field optimizer
+    data_gliodil = np.load(gliodil_out)
+    gliodil_density = data_gliodil['density']
+    gliodil_time    = data_gliodil['elapsed_time']   # wall-clock per-patient optimization time
+    gliodil_mask    = (gliodil_density >= args.threshold).astype(np.int8)
+    gliodil_gpu_mb  = float(data_gliodil.get('peak_gpu_memory_mb', 0.0))
     
     # 4. Compute Metrics per Method
+    # ── SECTION A: Measured on our test set (N=4, same pipeline, LOOCV) ──────
     methods = {
         "Clinical Standard (Uniform Margin)": {
             "mask": uniform_mask,
@@ -102,6 +112,11 @@ def main():
         "Vanilla PINN (Per-Patient)": {
             "mask": pinn_mask,
             "time": pinn_time,
+            "type": f"GPU ({torch.cuda.get_device_name(0)})" if torch.cuda.is_available() else "CPU"
+        },
+        "GliODIL (Reproduced)": {
+            "mask": gliodil_mask,
+            "time": gliodil_time,
             "type": f"GPU ({torch.cuda.get_device_name(0)})" if torch.cuda.is_available() else "CPU"
         },
         "MarginSense (Ensemble Amortized)": {
@@ -115,7 +130,25 @@ def main():
         "patient_id": patient_id,
         "threshold": args.threshold,
         "recurrence_volume_cm3": float(total_rec_voxels * voxel_vol_cm3),
-        "results": {}
+        "results": {},
+        # GliODIL paper's own reported numbers on their 152-patient cohort.
+        # THESE ARE NOT FROM OUR N=4 TEST SET — they are non-comparable reference
+        # figures included for context only. Do NOT merge these into the measured table.
+        "literature_reference": {
+            "source": "Balcerak et al., Nature Communications 2025",
+            "cohort": "N=152 glioblastoma patients (different cohort, not our test set)",
+            "non_comparable": True,
+            "disclaimer": (
+                "These numbers are from GliODIL's own 152-patient study cohort. "
+                "They cannot be directly compared to our N=4 reproduction results. "
+                "They are provided as context only."
+            ),
+            "reported_metrics": {
+                "recurrence_coverage_vs_standard_margin_improvement": "+4pct (64->68%)",
+                "cohort_size": 152,
+                "paper_doi": "10.1038/s41467-024-56098-y"
+            }
+        }
     }
     
     for name, m_data in methods.items():
@@ -133,28 +166,56 @@ def main():
         m_data["healthy_spared_vol_cm3"] = healthy_vol_cm3
         m_data["total_target_vol_cm3"] = float(np.sum(mask > 0) * voxel_vol_cm3)
         
-        report_data["results"][name] = {
+        entry = {
             "processing_time_seconds": float(m_data["time"]),
             "recurrence_coverage_percent": float(coverage),
             "treated_healthy_tissue_volume_cm3": float(healthy_vol_cm3),
             "total_target_volume_cm3": float(m_data["total_target_vol_cm3"]),
             "hardware_device": m_data["type"]
         }
+        # Record GliODIL peak GPU memory separately (prominent in dashboard)
+        if name == "GliODIL (Reproduced)":
+            entry["peak_gpu_memory_mb"] = gliodil_gpu_mb
+            entry["method_type"] = "per_patient_optimization"  # for dashboard runtime badge
+        elif "MarginSense" in name:
+            entry["method_type"] = "amortized_single_forward_pass"
+        elif "PINN" in name:
+            entry["method_type"] = "per_patient_optimization"
+        else:
+            entry["method_type"] = "geometric_expansion"
+        report_data["results"][name] = entry
         
     # 5. Print Formatted ASCII Table
-    print("\n" + "="*95)
-    print(f"                                COMPARATIVE REPORT FOR {patient_id.upper()}")
-    print("="*95)
-    header_fmt = "{:<35} | {:<16} | {:<20} | {:<20}"
-    row_fmt = "{:<35} | {:<16.4f} | {:<20.2f}% | {:<20.3f}"
-    
-    print(header_fmt.format("Method", "Time (seconds)", "Recurrence Coverage", "Healthy Treated Vol"))
-    print(header_fmt.format("", "", "(higher is better)", "(lower is better, cm^3)"))
-    print("-" * 95)
+    # ── SECTION A: Measured on our test set ──────────────────────────────────
+    W = 105
+    print("\n" + "="*W)
+    print(f"          [SECTION A] MEASURED ON OUR TEST SET — COMPARATIVE REPORT FOR {patient_id.upper()}")
+    print("="*W)
+    header_fmt = "{:<37} | {:<18} | {:<21} | {:<18}"
+    row_fmt    = "{:<37} | {:<18} | {:<21} | {:<18.3f}"
+    print(header_fmt.format("Method", "Time (seconds)", "Recurrence Coverage", "Healthy Vol (cm³)"))
+    print(header_fmt.format("", "[wall-clock/patient]", "(higher is better)", "(lower is better)"))
+    print("-" * W)
     
     for name, m_data in methods.items():
-        print(row_fmt.format(name, m_data["time"], m_data["coverage"], m_data["healthy_spared_vol_cm3"]))
-    print("="*95)
+        t_sec = m_data['time']
+        # Format time: show seconds + minutes for long-running methods
+        if t_sec > 60:
+            t_str = f"{t_sec:.1f}s ({t_sec/60:.1f} min)"
+        else:
+            t_str = f"{t_sec:.4f}s"
+        print(row_fmt.format(name, t_str, f"{m_data['coverage']:.2f}%", m_data['healthy_spared_vol_cm3']))
+    print("="*W)
+
+    # ── SECTION B: Literature Reference (NON-COMPARABLE) ─────────────────────
+    print("\n" + "-"*W)
+    print("  [SECTION B] LITERATURE REFERENCE ONLY — DIFFERENT COHORT — NOT DIRECTLY COMPARABLE")
+    print("-"*W)
+    print("  Source: Balcerak et al., Nature Communications 2025")
+    print("  Cohort: N=152 glioblastoma patients (THEIR dataset, not our N=4 test set)")
+    print("  GliODIL paper-reported recurrence coverage improvement: ~64% → ~68% vs. standard margin")
+    print("  ⚠  These numbers cannot be compared to our N=4 reproduction — different patients, cohort, and setup.")
+    print("-"*W)
     
     # 6. Save JSON Report
     report_file = f"outputs/{patient_id}_comparison_report.json"
