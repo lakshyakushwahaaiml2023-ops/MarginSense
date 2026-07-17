@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-17T15:39:57",
+  "generated_at": "2026-07-17T16:19:42",
   "patient_id": "synthetic_patient_2",
   "model_version": "MarginSense Ensemble v1.0 (5-model amortized PINN)",
   "imaging_sequences": [
@@ -9,6 +9,11 @@
     "FLAIR"
   ],
   "pipeline_threshold": 0.35,
+  "optimal_threshold": 0.28,
+  "optimization_lambda": 50.0,
+  "optimization_objective": "Maximize Recurrence Coverage - \u03bb * (Normalized Healthy Volume)",
+  "safety_margin_z": 1.5,
+  "safety_margin_rule": "adjusted_value = mean_prediction + z * uncertainty (Thresholded at optimal threshold)",
   "disclaimer": "The tumor infiltration probability is derived from ensemble agreement across 5 amortized PINN models. This is a model-confidence estimate representing model consensus, not a clinically calibrated probability validated against outcome data.",
   "covariates": {
     "age": {
@@ -69,24 +74,38 @@
   },
   "simulation": {
     "marginsense": {
-      "infiltration_boundary_volume_cm3": 201.50000957073644,
-      "recurrence_coverage_percent": 86.76618343619923,
-      "treated_healthy_tissue_volume_cm3": 160.58600762742572,
-      "processing_time_seconds": 6.316422600008082,
+      "infiltration_boundary_volume_cm3": 163.165,
+      "recurrence_coverage_percent": 89.46461891775513,
+      "treated_healthy_tissue_volume_cm3": 121.878,
+      "processing_time_seconds": 2.1334453000017675,
+      "hardware": "GPU (NVIDIA GeForce RTX 4050 Laptop GPU)"
+    },
+    "safety_margin": {
+      "infiltration_boundary_volume_cm3": 252.815,
+      "recurrence_coverage_percent": 96.48752281162214,
+      "treated_healthy_tissue_volume_cm3": 210.55,
+      "processing_time_seconds": 2.1334453000017675,
+      "hardware": "GPU (NVIDIA GeForce RTX 4050 Laptop GPU)"
+    },
+    "raw_035": {
+      "infiltration_boundary_volume_cm3": 142.77000678121112,
+      "recurrence_coverage_percent": 85.62406446718202,
+      "treated_healthy_tissue_volume_cm3": 102.2890048584668,
+      "processing_time_seconds": 2.1334453000017675,
       "hardware": "GPU (NVIDIA GeForce RTX 4050 Laptop GPU)"
     },
     "standard_margin": {
       "infiltration_boundary_volume_cm3": 206.9310098286951,
       "recurrence_coverage_percent": 100.0,
       "treated_healthy_tissue_volume_cm3": 164.66600782121532,
-      "processing_time_seconds": 1.3206695999979274,
+      "processing_time_seconds": 0.2492082999960985,
       "hardware": "CPU (scipy EDT)"
     },
     "recurrence_volume_cm3": 48.7690023164032,
     "uncertainty": {
       "high_conf_pct": 0.0,
-      "mean_std_boundary": 0.2259,
-      "max_std": 0.3593,
+      "mean_std_boundary": 0.2673,
+      "max_std": 0.4103,
       "max_uncertainty_region": "inferior margin",
       "uncertainty_threshold": 0.05
     }
@@ -94,15 +113,15 @@
   "discussion_flags": [
     {
       "type": "ms_extends_beyond_standard",
-      "volume_cm3": 65.64,
-      "region": "superior region",
-      "note": "MarginSense extends approximately 65.6 cm\u00b3 beyond the standard 1.5 cm uniform margin, concentrated in the superior region. The model predicts infiltration density above threshold in this zone that the fixed-margin approach does not cover. Warrants independent radiologist review before any use in planning."
+      "volume_cm3": 23.41,
+      "region": "posterior region",
+      "note": "MarginSense extends approximately 23.4 cm\u00b3 beyond the standard 1.5 cm uniform margin, concentrated in the posterior region. The model predicts infiltration density above threshold in this zone that the fixed-margin approach does not cover. Warrants independent radiologist review before any use in planning."
     },
     {
       "type": "standard_extends_beyond_ms",
-      "volume_cm3": 71.07,
+      "volume_cm3": 87.58,
       "region": "anterior region",
-      "note": "The standard margin covers approximately 71.1 cm\u00b3 that MarginSense does not flag as high-density infiltration, concentrated in the anterior region. This zone may represent lower predicted infiltration risk according to the model, but clinical judgment is required."
+      "note": "The standard margin covers approximately 87.6 cm\u00b3 that MarginSense does not flag as high-density infiltration, concentrated in the anterior region. This zone may represent lower predicted infiltration risk according to the model, but clinical judgment is required."
     }
   ],
   "quality_caveats": [

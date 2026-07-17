@@ -828,6 +828,63 @@
             <button class="btn" id="btn-generate-report" style="margin-top:10px; background:#1a1a20; border-color:#2d2d36; display:none;" onclick="openReportModal()">
                 &#x2398; Generate Patient Report
             </button>
+            <button class="btn" id="btn-eval-modal" style="margin-top:6px; background:linear-gradient(135deg,#0f4c81,#1a7abf); color:#e0f0ff; border-color:#1a7abf; font-size:9px; letter-spacing:.08em;" onclick="openEvalModal()">
+                &#x2316; Model Evaluation (Test Set)
+            </button>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">MARGIN OPTIMIZATION MODULE</div>
+            
+            <div style="margin-bottom:10px;">
+                <label style="display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px;">
+                    <span>Clinical Priority (&lambda;)</span>
+                    <span id="lbl-lambda" style="color:#00e5ff; font-weight:bold;">50</span>
+                </label>
+                <input type="range" id="slider-lambda" min="0" max="150" step="5" value="50" style="width:100%;">
+                <div style="font-size:7px; color:var(--muted); line-height:1.2; margin-top:2px;">
+                    Higher &lambda; prioritizes sparing healthy tissue (toxicity reduction); lower &lambda; prioritizes tumor coverage.
+                </div>
+            </div>
+
+            <div style="margin-bottom:10px; margin-top:8px; border-top:1px dashed var(--border); padding-top:8px;">
+                <label style="display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px;">
+                    <span>Safety Margin Caution Level (z)</span>
+                    <span id="lbl-z" style="color:#a855f7; font-weight:bold;">1.0</span>
+                </label>
+                <input type="range" id="slider-z" min="0.0" max="3.0" step="0.1" value="1.0" style="width:100%;">
+                <div style="font-size:7px; color:var(--muted); line-height:1.2; margin-top:2px;">
+                    Adjusts boundary expansion: adjusted = mean + z * std. Higher values grow margins in uncertain regions.
+                </div>
+            </div>
+            
+            <div style="border-top:1px dashed var(--border); margin:8px 0; padding-top:8px;">
+                <div style="font-size:9px; font-family:var(--font-mono); margin-bottom:4px; display:flex; justify-content:space-between;">
+                    <span>Optimal Threshold:</span>
+                    <span id="opt-threshold-val" style="color:#fff; font-weight:bold;">-</span>
+                </div>
+                <div style="font-size:9px; font-family:var(--font-mono); margin-bottom:4px; display:flex; justify-content:space-between;">
+                    <span>Optimized Coverage:</span>
+                    <span id="opt-coverage-val" style="color:#00e5ff; font-weight:bold;">-</span>
+                </div>
+                <div style="font-size:9px; font-family:var(--font-mono); margin-bottom:4px; display:flex; justify-content:space-between;">
+                    <span>Optimized Healthy Vol:</span>
+                    <span id="opt-healthy-val" style="color:#00e5ff; font-weight:bold;">-</span>
+                </div>
+                <div style="font-size:9px; font-family:var(--font-mono); margin-bottom:4px; display:flex; justify-content:space-between; border-top:1px dashed var(--border); padding-top:4px;">
+                    <span style="color:#a855f7;">Safety Margin Vol:</span>
+                    <span id="safety-vol-val" style="color:#a855f7; font-weight:bold;">-</span>
+                </div>
+                <div style="font-size:9px; font-family:var(--font-mono); margin-bottom:4px; display:flex; justify-content:space-between;">
+                    <span style="color:#a855f7;">Safety Margin Coverage:</span>
+                    <span id="safety-coverage-val" style="color:#a855f7; font-weight:bold;">-</span>
+                </div>
+            </div>
+
+            <div style="border-top:1px dashed var(--border); margin:8px 0; padding-top:8px; height:130px;">
+                <div style="font-size:7px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; font-family:var(--font-mono);">Coverage vs. Healthy Vol (ROC Sweep)</div>
+                <div class="chart-wrap" style="height:110px;"><canvas id="chart-margin-roc"></canvas></div>
+            </div>
         </div>
 
         <div class="panel" style="height:158px">
@@ -843,6 +900,13 @@
                     <input type="checkbox" class="chk-input" id="chk-brain" checked>
                 </label>
             </div>
+            <!-- Brain shell opacity slider (0% = hidden, 30% = default, 100% = opaque) -->
+            <div style="padding:4px 0 6px 0; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:8px; color:var(--muted); font-family:var(--font-mono); white-space:nowrap; min-width:52px;">Opacity</span>
+                <input type="range" id="slider-brain-opacity" min="0" max="100" step="1" value="30"
+                       style="flex:1; height:3px; accent-color:#d2d2d6;">
+                <span id="lbl-brain-opacity" style="font-size:8px; color:#d2d2d6; font-family:var(--font-mono); min-width:28px; text-align:right;">30%</span>
+            </div>
             <div class="checkbox-container">
                 <label class="chk-label" for="chk-tumor">
                     <span>Gross Tumor Volume (GTV)</span>
@@ -857,8 +921,20 @@
             </div>
             <div class="checkbox-container">
                 <label class="chk-label" for="chk-density">
-                    <span style="color: var(--accent); font-weight: 600;">MarginSense Predicted CTV</span>
+                    <span style="color: var(--accent); font-weight: 600;">MarginSense Predicted CTV (0.35)</span>
                     <input type="checkbox" class="chk-input" id="chk-density" checked>
+                </label>
+            </div>
+            <div class="checkbox-container">
+                <label class="chk-label" for="chk-optimized-density">
+                    <span style="color: #ec4899; font-weight: 600;">Optimized MarginSense CTV</span>
+                    <input type="checkbox" class="chk-input" id="chk-optimized-density" checked>
+                </label>
+            </div>
+            <div class="checkbox-container">
+                <label class="chk-label" for="chk-safety-margin">
+                    <span style="color: #a855f7; font-weight: 600;">Recommended Safety Margin</span>
+                    <input type="checkbox" class="chk-input" id="chk-safety-margin" checked>
                 </label>
             </div>
             <div class="checkbox-container">
@@ -887,14 +963,35 @@
                 </label>
             </div>
         </div>
-    </div>
+
+        <!-- Spread Explainability Panel — inside sidebar-right -->
+        <div class="panel" id="panel-explain">
+            <div class="panel-title">SPREAD EXPLAINABILITY</div>
+            <div id="explain-loading" style="font-size:9px; color:var(--muted); font-family:var(--font-mono); padding:4px 0;">
+                Run target planning to generate analysis.
+            </div>
+            <div id="explain-content" style="display:none;">
+                <!-- Dominant Sector Bar -->
+                <div id="explain-sector-bar" style="margin-bottom:8px;">
+                    <div style="font-size:8px; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">Furthest Extension by Direction</div>
+                    <div id="explain-sector-rows"></div>
+                </div>
+                <!-- Summary text -->
+                <div id="explain-summary-text" style="font-size:9px; color:#e2e8f0; line-height:1.55; padding:8px; background:rgba(255,255,255,0.04); border-radius:4px; border-left:2px solid #a855f7; margin-bottom:6px;"></div>
+                <!-- Disclaimer -->
+                <div id="explain-disclaimer" style="font-size:7.5px; color:#64748b; line-height:1.4; font-style:italic; padding:6px 4px; border-top:1px dashed var(--border);"></div>
+            </div>
+            <button class="btn" id="btn-explain" style="width:100%; margin-top:8px; background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; padding:6px 0; font-size:9px; letter-spacing:0.08em;">GENERATE ANALYSIS</button>
+        </div>
+    </div><!-- /sidebar-right -->
 
     <!-- Legend -->
     <div id="legend">
         <span><span class="dot" style="background:#d2d2d6"></span>Brain Envelope</span>
         <span><span class="dot" style="background:#ef4444"></span>GTV</span>
         <span><span class="dot" style="background:#06b6d4"></span>CTV (Standard)</span>
-        <span><span class="dot" style="background:#ffaa00"></span>CTV (MarginSense)</span>
+        <span><span class="dot" style="background:#ffaa00"></span>CTV (MarginSense 0.35)</span>
+        <span><span class="dot" style="background:#ec4899"></span>CTV (Optimized)</span>
     </div>
 
     <!-- Probability Scale Legend -->
@@ -912,7 +1009,14 @@
     <div id="slice-viewer">
         <div class="slice-header">
             <span>2D RADIOLOGY SLICE VIEWER</span>
-            <select class="modality-sel" id="sel-modality">
+            
+            <span style="font-size:10px; color:var(--muted); margin-left:14px; font-family:var(--font-mono)">View Mode:</span>
+            <select class="modality-sel" id="sel-view-mode" style="width:140px; margin-left:4px;">
+                <option value="mpr" selected>MPR Planes</option>
+                <option value="ensemble">Ensemble Maps</option>
+            </select>
+
+            <select class="modality-sel" id="sel-modality" style="margin-left:8px;">
                 <option value="1">T1ce</option>
                 <option value="2" selected>FLAIR</option>
                 <option value="0">T1</option>
@@ -922,37 +1026,40 @@
             <button class="btn-sm" id="btn-close-slice" style="margin-left:auto">Close</button>
         </div>
         <div class="slice-panels">
-            <!-- Axial -->
+            <!-- Axial / Panel 1 -->
             <div class="slice-panel">
-                <div class="slice-panel-label">Axial (z-plane)</div>
+                <div class="slice-panel-label" id="lbl-slice-1">Axial (z-plane)</div>
                 <div class="slice-canvas-container" id="cc-axial">
                     <canvas id="cv-axial" width="128" height="128"></canvas>
                 </div>
-                <div class="slice-slider-row">
+                <div class="slice-slider-row" id="row-slider-1">
                     <input type="range" id="sl-axial" min="0" max="127" value="64">
                     <span class="slice-idx" id="idx-axial">64</span>
                 </div>
             </div>
-            <!-- Coronal -->
+            <!-- Coronal / Panel 2 -->
             <div class="slice-panel">
-                <div class="slice-panel-label">Coronal (y-plane)</div>
+                <div class="slice-panel-label" id="lbl-slice-2">Coronal (y-plane)</div>
                 <div class="slice-canvas-container" id="cc-coronal">
                     <canvas id="cv-coronal" width="128" height="128"></canvas>
                 </div>
-                <div class="slice-slider-row">
+                <div class="slice-slider-row" id="row-slider-2">
                     <input type="range" id="sl-coronal" min="0" max="127" value="64">
                     <span class="slice-idx" id="idx-coronal">64</span>
                 </div>
             </div>
-            <!-- Sagittal -->
+            <!-- Sagittal / Panel 3 -->
             <div class="slice-panel">
-                <div class="slice-panel-label">Sagittal (x-plane)</div>
+                <div class="slice-panel-label" id="lbl-slice-3">Sagittal (x-plane)</div>
                 <div class="slice-canvas-container" id="cc-sagittal">
                     <canvas id="cv-sagittal" width="128" height="128"></canvas>
                 </div>
-                <div class="slice-slider-row">
+                <div class="slice-slider-row" id="row-slider-3">
                     <input type="range" id="sl-sagittal" min="0" max="127" value="64">
                     <span class="slice-idx" id="idx-sagittal">64</span>
+                </div>
+                <div id="safety-caption" style="font-size:8px; color:#c084fc; margin-top:6px; font-style:italic; line-height:1.2; display:none; max-width:240px;">
+                    Grows the treatment boundary in regions where the model is uncertain, and stays tight where the model is confident.
                 </div>
             </div>
         </div>
@@ -1052,19 +1159,30 @@
                 <div class="rpt-section" id="rpt-sec-visuals">
                     <div class="rpt-section-title">&#x25A0; 4 — Visual Attachments</div>
                     <div class="rpt-section-body">
-                        <div class="rpt-visual-grid">
+                        <div class="rpt-visual-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                             <div class="rpt-visual-card">
-                                <div class="vc-label">2D Axial Slice — Largest Tumor Cross-Section (Both Margins Overlaid)</div>
-                                <div id="rpt-slice-wrap"><div class="rpt-visual-placeholder">Loading slice…</div></div>
+                                <div class="vc-label">Figure 4a: Prediction Map (Ensemble Mean & GTV)</div>
+                                <div id="rpt-slice-prediction-wrap"><div class="rpt-visual-placeholder">Loading map…</div></div>
                             </div>
                             <div class="rpt-visual-card">
-                                <div class="vc-label">3D Volume View — Current Viewport</div>
+                                <div class="vc-label">Figure 4b: Uncertainty Map (Ensemble Std Dev)</div>
+                                <div id="rpt-slice-uncertainty-wrap"><div class="rpt-visual-placeholder">Loading map…</div></div>
+                            </div>
+                            <div class="rpt-visual-card">
+                                <div class="vc-label">Figure 4c: Recommended Safety Margin (adjusted CTV)</div>
+                                <div id="rpt-slice-safety-wrap"><div class="rpt-visual-placeholder">Loading map…</div></div>
+                                <div style="font-size:7px; color:#c084fc; padding:4px 8px; font-style:italic; border-top:1px solid #e2e8f0; background:#faf5ff;">
+                                    "Grows the treatment boundary in regions where the model is uncertain, and stays tight where the model is confident."
+                                </div>
+                            </div>
+                            <div class="rpt-visual-card">
+                                <div class="vc-label">Figure 4d: 3D Volume View — Current Viewport</div>
                                 <div id="rpt-3d-wrap"><div class="rpt-visual-placeholder">Capturing 3D view…</div></div>
                             </div>
                         </div>
-                        <div style="font-size:10px; color:#94a3b8; margin-top:10px; font-style:italic;">
-                            Slice: FLAIR modality at the axial plane with the largest tumor cross-section.
-                            Contour colours: <strong style="color:#ef4444">red</strong> = GTV, <strong style="color:#22d3ee">cyan</strong> = Standard CTV, <strong style="color:#f59e0b">amber</strong> = MarginSense CTV.
+                        <div style="font-size:9px; color:#94a3b8; margin-top:10px; font-style:italic; line-height:1.2;">
+                            Slice: FLAIR modality at the axial plane (z-slice) with the largest tumor cross-section.<br>
+                            Contour colours: <strong style="color:#ef4444">red</strong> = GTV, <strong style="color:#22d3ee">cyan</strong> = Standard CTV, <strong style="color:#ffaa00">amber</strong> = MarginSense CTV (0.35), <strong style="color:#ec4899">pink</strong> = Optimized CTV, <strong style="color:#a855f7">purple</strong> = Recommended Safety Margin.
                         </div>
                     </div>
                 </div>
@@ -1080,7 +1198,36 @@
                     </div>
                 </div>
 
-                <!-- SECTION 6: Disclaimer (always visible, non-collapsible) -->
+                <!-- SECTION 6: Spread Explainability -->
+                <div class="rpt-section" id="rpt-sec-explain">
+                    <div class="rpt-section-title">&#x25A0; 6 — Spread Explainability (Computed Analysis)</div>
+                    <div class="rpt-section-body">
+                        <div style="font-size:10px; color:#64748b; margin-bottom:12px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:3px; font-style:italic;">
+                            <strong>Note:</strong> This section fills a fixed template with computed values derived from the predicted probability map, tissue atlas, and diffusion coefficients. No LLM or free-form text generation is used.
+                        </div>
+                        <!-- Sector Extension Table -->
+                        <div id="rpt-sector-table-wrap" style="margin-bottom:12px;">
+                            <div style="font-size:10px; font-weight:600; color:#374151; margin-bottom:6px; font-family:'IBM Plex Mono',monospace;">Anatomical Sector Extension Beyond Visible Tumor</div>
+                            <table id="rpt-sector-table" style="width:100%; border-collapse:collapse; font-size:9px; font-family:'IBM Plex Mono',monospace;">
+                                <thead>
+                                    <tr style="background:#f1f5f9; color:#374151;">
+                                        <th style="text-align:left; padding:4px 8px; border:1px solid #e2e8f0;">Direction</th>
+                                        <th style="text-align:center; padding:4px 8px; border:1px solid #e2e8f0;">Extension (mm)</th>
+                                        <th style="text-align:center; padding:4px 8px; border:1px solid #e2e8f0;">WM Fraction (%)</th>
+                                        <th style="text-align:center; padding:4px 8px; border:1px solid #e2e8f0;">Mean D(x) (mm²/day)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rpt-sector-tbody"></tbody>
+                            </table>
+                        </div>
+                        <!-- Summary Text -->
+                        <div id="rpt-explain-summary" style="font-size:10.5px; color:#1e293b; line-height:1.65; padding:10px 12px; background:#faf5ff; border:1px solid #e9d5ff; border-left:3px solid #a855f7; border-radius:4px; margin-bottom:10px;"></div>
+                        <!-- Explainability Disclaimer (non-removable) -->
+                        <div id="rpt-explain-disclaimer" style="font-size:9px; color:#6b7280; line-height:1.5; font-style:italic; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:3px; border-left:2px solid #9ca3af;"></div>
+                    </div>
+                </div>
+
+                <!-- SECTION 7: Disclaimer (always visible, non-collapsible) -->
                 <div class="rpt-disclaimer">
                     <div class="disc-title">&#9888; Clinical & Infiltration Probability Disclaimer</div>
                     Generated by a research prototype. Not a validated clinical tool. Not a substitute for physician judgment.
@@ -1092,6 +1239,65 @@
             </div><!-- /rpt-body -->
         </div><!-- /report-doc -->
     </div><!-- /report-modal -->
+
+    <!-- Model Evaluation Modal -->
+    <div id="eval-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:9000; overflow-y:auto; padding:24px 16px;">
+        <div style="max-width:1100px; margin:0 auto; background:#0f1117; border:1px solid #2d2d36; border-radius:6px; overflow:hidden; font-family:var(--font-sans);">
+
+            <!-- Header -->
+            <div style="background:#13161f; padding:18px 24px; border-bottom:1px solid #2d2d36; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:15px; font-weight:700; color:#fff; font-family:var(--font-mono); letter-spacing:.05em;">MODEL EVALUATION — TEST SET</div>
+                    <div id="eval-n-note" style="font-size:10px; color:#f59e0b; margin-top:3px; font-family:var(--font-mono);"></div>
+                </div>
+                <button onclick="closeEvalModal()" style="background:transparent; border:1px solid #3d3d46; color:#94a3b8; padding:4px 12px; border-radius:3px; cursor:pointer; font-size:11px;">✕ Close</button>
+            </div>
+
+            <!-- Loading state -->
+            <div id="eval-loading" style="padding:48px; text-align:center; color:#64748b; font-family:var(--font-mono); font-size:11px;">
+                Computing HD95, Surface Dice, ASD across test set… this may take 30–90 s.
+            </div>
+
+            <!-- Content (hidden until loaded) -->
+            <div id="eval-content" style="display:none; padding:20px 24px;">
+
+                <!-- ─── SECTION 1: Clinical Accuracy ─────────────────────────────── -->
+                <div style="margin-bottom:24px;">
+                    <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.12em; font-family:var(--font-mono); border-bottom:1px solid #2d2d36; padding-bottom:6px; margin-bottom:12px;">
+                        ■ Clinical Accuracy Metrics
+                    </div>
+                    <div id="eval-table-clinical" style="overflow-x:auto;"></div>
+                </div>
+
+                <!-- ─── SECTION 2: Efficiency ─────────────────────────────────────── -->
+                <div style="margin-bottom:24px;">
+                    <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.12em; font-family:var(--font-mono); border-bottom:1px solid #2d2d36; padding-bottom:6px; margin-bottom:12px;">
+                        ■ Efficiency Metrics
+                    </div>
+                    <div id="eval-table-efficiency" style="overflow-x:auto;"></div>
+                </div>
+
+                <!-- ─── SECTION 3: Model Sanity Check ────────────────────────────── -->
+                <div style="margin-bottom:24px;">
+                    <div style="font-size:10px; font-weight:700; color:#a78bfa; text-transform:uppercase; letter-spacing:.12em; font-family:var(--font-mono); border-bottom:1px solid #3d2d5e; padding-bottom:6px; margin-bottom:6px;">
+                        ■ Model Sanity Check — Physics Residual
+                    </div>
+                    <div style="font-size:9px; color:#64748b; margin-bottom:10px; font-style:italic;">
+                        This is NOT a clinical accuracy metric. It measures how well the network's predicted field satisfies the Fisher-KPP PDE it is trained to solve. Lower MSE = better physics consistency.
+                    </div>
+                    <div id="eval-table-physics" style="overflow-x:auto;"></div>
+                </div>
+
+                <!-- ─── Per-patient detail (collapsible) ─────────────────────────── -->
+                <div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.12em; font-family:var(--font-mono); border-bottom:1px solid #2d2d36; padding-bottom:6px; margin-bottom:10px; cursor:pointer;" onclick="document.getElementById('eval-per-patient').style.display = document.getElementById('eval-per-patient').style.display==='none' ? 'block' : 'none'">
+                        ■ Per-Patient Detail ▾ (click to expand)
+                    </div>
+                    <div id="eval-per-patient" style="display:none; overflow-x:auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bottom bar -->
     <div id="bottom-bar">
@@ -1210,6 +1416,218 @@ const chartLatents = new Chart(document.getElementById('chart-latents').getConte
     }
 });
 
+// Margin ROC Sweep chart
+const chartMarginRoc = new Chart(document.getElementById('chart-margin-roc').getContext('2d'), {
+    type: 'scatter',
+    data: {
+        datasets: [
+            {
+                label: 'ROC Sweep',
+                data: [],
+                showLine: true,
+                borderColor: '#4b5563',
+                backgroundColor: 'rgba(75, 85, 99, 0.4)',
+                borderWidth: 1.2,
+                pointRadius: 1.5,
+                pointHoverRadius: 4.0
+            },
+            {
+                label: 'Optimized Target',
+                data: [],
+                backgroundColor: '#ec4899',
+                borderColor: '#ffffff',
+                borderWidth: 1.5,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            },
+            {
+                label: 'Standard Margin',
+                data: [],
+                backgroundColor: '#06b6d4',
+                borderColor: '#ffffff',
+                borderWidth: 1.5,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            },
+            {
+                label: 'Raw 0.35 Margin',
+                data: [],
+                backgroundColor: '#ffaa00',
+                borderColor: '#ffffff',
+                borderWidth: 1.5,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const pt = context.raw;
+                        if (pt.threshold !== undefined) {
+                            return `${context.dataset.label}: Thresh ${pt.threshold.toFixed(2)} (Cov: ${pt.y.toFixed(1)}%, Vol: ${pt.x.toFixed(2)} cc)`;
+                        }
+                        return `${context.dataset.label} (Cov: ${pt.y.toFixed(1)}%, Vol: ${pt.x.toFixed(2)} cc)`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: { display: true, text: 'Healthy Vol (cm³)', color: '#8e95a0', font: { family: 'IBM Plex Mono', size: 6 } },
+                grid: { color: 'rgba(255,255,255,0.03)' },
+                ticks: { color: '#8e95a0', font: { family: 'IBM Plex Mono', size: 6 } }
+            },
+            y: {
+                title: { display: true, text: 'Coverage (%)', color: '#8e95a0', font: { family: 'IBM Plex Mono', size: 6 } },
+                grid: { color: 'rgba(255,255,255,0.03)' },
+                ticks: { color: '#8e95a0', font: { family: 'IBM Plex Mono', size: 6 } },
+                min: 0,
+                max: 100
+            }
+        }
+    }
+});
+
+async function fetchMarginSweep(patientId) {
+    try {
+        const resp = await fetch(`/api/margin_sweep/${patientId}`);
+        const data = await resp.json();
+        marginSweepData = data;
+        
+        // Populate chart sweep data
+        const sweepPoints = (data.sweep || []).map(item => ({
+            x: item.healthy_volume,
+            y: item.coverage,
+            threshold: item.threshold
+        }));
+        
+        chartMarginRoc.data.datasets[0].data = sweepPoints;
+        
+        // Populate Standard and Raw 0.35 points
+        chartMarginRoc.data.datasets[2].data = [{ x: data.standard.healthy_volume, y: data.standard.coverage }];
+        chartMarginRoc.data.datasets[3].data = [{ x: data.raw_035.healthy_volume, y: data.raw_035.coverage }];
+        
+        // Recalculate optimal target metrics
+        recalculateOptimalTarget();
+    } catch (e) {
+        console.warn("Failed to load margin sweep curve:", e);
+    }
+}
+
+function recalculateOptimalTarget() {
+    if (!marginSweepData || !marginSweepData.sweep) return;
+    
+    // Maximize Coverage - lambda * (Healthy Volume / Standard Healthy Volume)
+    const stdVol = marginSweepData.standard.healthy_volume || 100.0;
+    
+    let bestScore = -Infinity;
+    let bestItem = null;
+    
+    marginSweepData.sweep.forEach(item => {
+        const normHealthy = item.healthy_volume / stdVol;
+        const score = item.coverage - clinicalPriorityLambda * normHealthy;
+        if (score > bestScore) {
+            bestScore = score;
+            bestItem = item;
+        }
+    });
+    
+    if (bestItem) {
+        optimalThreshold = bestItem.threshold;
+        
+        // Update UI displays
+        document.getElementById('opt-threshold-val').textContent = optimalThreshold.toFixed(2);
+        document.getElementById('opt-coverage-val').textContent = bestItem.coverage.toFixed(1) + '%';
+        document.getElementById('opt-healthy-val').textContent = bestItem.healthy_volume.toFixed(2) + ' cm³';
+        
+        // Update optimized point in chart
+        chartMarginRoc.data.datasets[1].data = [{ x: bestItem.healthy_volume, y: bestItem.coverage, threshold: optimalThreshold }];
+        chartMarginRoc.update();
+        
+        // Dynamically update the 3D points cloud filtering in real-time!
+        update3DPointCloud(optimalThreshold);
+        
+        // Update UCB safety metrics readouts
+        updateSafetyMetrics();
+    }
+}
+
+async function updateSafetyMetrics() {
+    const pid = document.getElementById('sel-patient').value;
+    if (!pid) return;
+    
+    try {
+        const resp = await fetch(`/api/safety_metrics/${pid}?optimal_threshold=${optimalThreshold}&z_val=${safetyMarginZ}`);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        
+        document.getElementById('safety-vol-val').textContent = data.total_volume.toFixed(2) + ' cm³';
+        document.getElementById('safety-coverage-val').textContent = data.coverage.toFixed(1) + '%';
+    } catch (e) {
+        console.warn("Failed to fetch safety metrics:", e);
+    }
+}
+
+function update3DPointCloud(threshold) {
+    if (!densityPoints || !patientData || !patientData.density) return;
+    
+    const positions = [];
+    const colors = [];
+    const density = patientData.density;
+    const shape = patientData.shape || [64, 64, 64];
+    const spacing = patientData.spacing || [1.0, 1.0, 1.0];
+    const scale = patientData.alignment_scale;
+    const centroidPat = patientData.alignment_centroid;
+    const centroidTemp = [0.0055, 0.0689, -0.0351];
+    
+    densityPoints.pointData = [];
+    let ptIdx = 0;
+    
+    for (let iz = 0; iz < shape[0]; iz++) {
+        for (let iy = 0; iy < shape[1]; iy++) {
+            for (let ix = 0; ix < shape[2]; ix++) {
+                const idx = iz * shape[1] * shape[2] + iy * shape[2] + ix;
+                const val = density[idx];
+                const p = val / 255.0;
+                
+                // Filter points by the dynamic optimal threshold!
+                if (p >= threshold) {
+                    const px_pat = ix * spacing[0] * 2.0;
+                    const py_pat = iy * spacing[1] * 2.0;
+                    const pz_pat = iz * spacing[2] * 2.0;
+                    
+                    const tx = (px_pat - centroidPat[0]) * scale + centroidTemp[0];
+                    const ty = (py_pat - centroidPat[1]) * scale + centroidTemp[1];
+                    const tz = (pz_pat - centroidPat[2]) * scale + centroidTemp[2];
+                    
+                    positions.push(tx, ty, tz);
+                    
+                    const c = getProbabilityColor(p);
+                    colors.push(c[0]/255, c[1]/255, c[2]/255);
+                    
+                    densityPoints.pointData.push({
+                        x: tx, y: ty, z: tz,
+                        p: p,
+                        grid: [ix, iy, iz]
+                    });
+                    ptIdx++;
+                }
+            }
+        }
+    }
+    
+    densityPoints.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    densityPoints.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    densityPoints.geometry.attributes.position.needsUpdate = true;
+    densityPoints.geometry.attributes.color.needsUpdate = true;
+}
+
 async function updateLatentsProjection(currentPatientId) {
     try {
         const resp = await fetch(`/api/latents_projection?current=${encodeURIComponent(currentPatientId || '')}`);
@@ -1249,18 +1667,28 @@ camera.position.set(60, 35, 80);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+renderer.sortObjects        = true;   // ensures transparent objects render after opaque ones
+renderer.localClippingEnabled = true; // required for per-material clipping planes
 
-// ── Clipping Plane & Opaque Matte Brain Setup ────────────────────────
+// ── Clipping Plane & Translucent Brain Shell Setup ────────────────────
 const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 10.0);
 let clipPlaneActive = true;
 
-// Simple matte gray brain material with clipping planes enabled
+// Default brain shell opacity (matches slider default = 30)
+const BRAIN_OPACITY_DEFAULT = 0.30;
+
+// Standard alpha-blending translucent brain shell.
+// depthWrite:false + renderOrder:0 prevents the shell from occluding
+// the tumor/margins that sit at renderOrder:1+ in the scene graph.
 function brainMatteMaterial() {
     return new THREE.MeshStandardMaterial({
-        color:        0xd2d2d6,
-        roughness:    0.95,
-        metalness:    0.05,
-        side:         THREE.DoubleSide,
+        color:          0xd2d2d6,
+        roughness:      0.80,
+        metalness:      0.05,
+        transparent:    true,
+        opacity:        BRAIN_OPACITY_DEFAULT,
+        depthWrite:     false,   // shell doesn't block depth buffer — inner meshes always visible
+        side:           THREE.DoubleSide,
         clippingPlanes: [ clipPlane ],
     });
 }
@@ -1305,6 +1733,11 @@ let marginMesh    = null;
 let predictedMesh = null;
 let densityPoints = null;
 let currentPatient = null;
+
+let optimalThreshold = 0.35;
+let clinicalPriorityLambda = 50;
+let marginSweepData = null;
+let safetyMarginZ = 1.0;
 
 const loader = new THREE.GLTFLoader();
 
@@ -1383,7 +1816,6 @@ async function loadPatientScene(patientId) {
     document.getElementById('console-log').textContent = `[*] Loading meshes for ${patientId}…`;
 
     // Fetch volume data from server
-    let patientData;
     try {
         const resp = await fetch(`/api/patient_data/${patientId}`);
         patientData = await resp.json();
@@ -1423,6 +1855,14 @@ async function loadPatientScene(patientId) {
         });
         brainMesh = gltf.scene;
         brainMesh.visible = document.getElementById('chk-brain').checked;
+        // Apply current opacity from slider to every mesh in the brain scene group
+        const opVal = parseInt(document.getElementById('slider-brain-opacity').value) / 100;
+        brainMesh.traverse(obj => {
+            if (obj.isMesh && obj.material) {
+                obj.material.opacity = opVal;
+            }
+        });
+        brainMesh.renderOrder = 0;  // brain shell always behind other meshes
         scene.add(brainMesh);
     } catch (e) { console.warn('No template brain GLB:', e); }
 
@@ -1434,6 +1874,7 @@ async function loadPatientScene(patientId) {
             if (geom) {
                 geom.computeVertexNormals();
                 tumorMesh = new THREE.Mesh(geom, tumorMaterial());
+                tumorMesh.renderOrder = 1;  // renders after translucent brain shell
                 tumorMesh.visible = document.getElementById('chk-tumor').checked;
                 scene.add(tumorMesh);
             }
@@ -1448,6 +1889,7 @@ async function loadPatientScene(patientId) {
             if (geom) {
                 geom.computeVertexNormals();
                 marginMesh = new THREE.Mesh(geom, marginMaterial());
+                marginMesh.renderOrder = 1;
                 marginMesh.visible = document.getElementById('chk-margin').checked;
                 scene.add(marginMesh);
             }
@@ -1462,6 +1904,7 @@ async function loadPatientScene(patientId) {
             if (geom) {
                 geom.computeVertexNormals();
                 predictedMesh = new THREE.Mesh(geom, predictedMarginMaterial());
+                predictedMesh.renderOrder = 1;
                 predictedMesh.visible = document.getElementById('chk-density').checked;
                 scene.add(predictedMesh);
             }
@@ -1612,6 +2055,9 @@ async function loadPatientScene(patientId) {
 
     // Update latents PCA projection chart
     updateLatentsProjection(patientId);
+    
+    // Fetch margin optimization sweep data
+    fetchMarginSweep(patientId);
 
     document.getElementById('console-log').textContent = `[+] Scene loaded for ${patientId}.`;
 }
@@ -1658,6 +2104,24 @@ document.getElementById('btn-play').addEventListener('click', togglePlay);
 document.getElementById('chk-brain').addEventListener('change', e => {
     if (brainMesh) brainMesh.visible = e.target.checked;
 });
+
+// Brain shell opacity slider — adjusts live without reload
+document.getElementById('slider-brain-opacity').addEventListener('input', e => {
+    const pct = parseInt(e.target.value);
+    document.getElementById('lbl-brain-opacity').textContent = pct + '%';
+    if (!brainMesh) return;
+    const op = pct / 100;
+    brainMesh.traverse(obj => {
+        if (obj.isMesh && obj.material) {
+            obj.material.transparent = op < 1.0;
+            obj.material.opacity = op;
+            obj.material.depthWrite = op >= 1.0; // re-enable depth write only when fully opaque
+            obj.material.needsUpdate = true;
+        }
+    });
+    // Keep brain shown if slider > 0, respect checkbox when slider = 0
+    brainMesh.visible = pct > 0 && document.getElementById('chk-brain').checked;
+});
 document.getElementById('chk-tumor').addEventListener('change', e => {
     if (tumorMesh) tumorMesh.visible = e.target.checked;
 });
@@ -1679,6 +2143,39 @@ document.getElementById('chk-prob-contours').addEventListener('change', e => {
 });
 document.getElementById('chk-prob-cloud').addEventListener('change', e => {
     if (densityPoints) densityPoints.visible = e.target.checked;
+});
+document.getElementById('chk-optimized-density').addEventListener('change', e => {
+    renderAllSlices();
+});
+document.getElementById('chk-safety-margin').addEventListener('change', e => {
+    renderAllSlices();
+});
+document.getElementById('slider-lambda').addEventListener('input', e => {
+    clinicalPriorityLambda = parseInt(e.target.value);
+    document.getElementById('lbl-lambda').textContent = clinicalPriorityLambda;
+    recalculateOptimalTarget();
+    if (sliceViewerOpen) renderAllSlices();
+});
+document.getElementById('slider-z').addEventListener('input', e => {
+    safetyMarginZ = parseFloat(e.target.value);
+    document.getElementById('lbl-z').textContent = safetyMarginZ.toFixed(1);
+    updateSafetyMetrics();
+    if (sliceViewerOpen) renderAllSlices();
+});
+document.getElementById('sel-view-mode').addEventListener('change', e => {
+    const isEnsemble = (e.target.value === 'ensemble');
+    
+    // Toggle label texts
+    document.getElementById('lbl-slice-1').textContent = isEnsemble ? '1. Prediction Map (Mean)' : 'Axial (z-plane)';
+    document.getElementById('lbl-slice-2').textContent = isEnsemble ? '2. Uncertainty Map (Std Dev)' : 'Coronal (y-plane)';
+    document.getElementById('lbl-slice-3').textContent = isEnsemble ? '3. Recommended Safety Margin' : 'Sagittal (x-plane)';
+    
+    // Toggle slider rows and caption visibility
+    document.getElementById('row-slider-2').style.display = isEnsemble ? 'none' : 'flex';
+    document.getElementById('row-slider-3').style.display = isEnsemble ? 'none' : 'flex';
+    document.getElementById('safety-caption').style.display = isEnsemble ? 'block' : 'none';
+    
+    if (sliceViewerOpen) renderAllSlices();
 });
 
 // ── Patient selector ───────────────────────────────────────────────────
@@ -1763,6 +2260,8 @@ document.getElementById('btn-run').addEventListener('click', async () => {
                     updateMetrics();
                     // Show Generate Report button once pipeline completes
                     document.getElementById('btn-generate-report').style.display = 'block';
+                    // Auto-run spread explainability after pipeline finishes
+                    loadExplainability(pid);
                 }
             } catch (e) {
                 console_.textContent += `\n[Error] Log poll failed: ${e}`;
@@ -1773,6 +2272,12 @@ document.getElementById('btn-run').addEventListener('click', async () => {
         btn.disabled = false;
         stopGpuPoll();
     }
+});
+
+// ── Spread Explainability button ────────────────────────────────────────
+document.getElementById('btn-explain').addEventListener('click', () => {
+    const pid = document.getElementById('sel-patient').value;
+    loadExplainability(pid);
 });
 
 // ── 2D Radiology Slice Viewer ──────────────────────────────────────────
@@ -2067,13 +2572,29 @@ function getProbabilityColor(p) {
     return [r, g, b, alpha];
 }
 
+function getUncertaintyColor(p) {
+    const v = Math.min(1.0, p / 0.15); // typical max std is ~0.15
+    // Purple color: R=168, G=85, B=247
+    return [168, 85, 247, v * 0.75];
+}
+
 async function renderSlice(axis, index, canvas) {
     const pid = document.getElementById('sel-patient').value;
     const modality = selModality.value;
     if (!pid) return;
     
+    const viewMode = document.getElementById('sel-view-mode').value;
+    const isEnsembleMode = (viewMode === 'ensemble');
+    
+    let fetchAxis = axis;
+    let fetchIndex = index;
+    if (isEnsembleMode) {
+        fetchAxis = 0; // always axial
+        fetchIndex = sliceIndices.z; // always z-plane index
+    }
+    
     try {
-        const resp = await fetch(`/api/slices/${pid}/${axis}/${index}?modality=${modality}`);
+        const resp = await fetch(`/api/slices/${pid}/${fetchAxis}/${fetchIndex}?modality=${modality}&optimal_threshold=${optimalThreshold}&z_val=${safetyMarginZ}`);
         const data = await resp.json();
         if (data.error) throw new Error(data.error);
         
@@ -2090,18 +2611,35 @@ async function renderSlice(axis, index, canvas) {
         const u8 = data.pixels;
         const showOverlay = document.getElementById('chk-prob-overlay').checked;
         const densities = data.density_values;
+        const stds = data.std_values;
+        
+        // Check if this canvas represents the Uncertainty map in Ensemble mode
+        const isUncertaintyCanvas = isEnsembleMode && (canvas.id === 'cv-coronal');
         
         for (let i = 0; i < u8.length; i++) {
             const idx = i * 4;
             const val = u8[i];
             
-            if (showOverlay && densities && densities[i] > 0.01) {
-                const p = densities[i];
-                const c = getProbabilityColor(p);
-                const a = c[3];
-                imgData.data[idx]     = Math.round((1 - a) * val + a * c[0]);
-                imgData.data[idx + 1] = Math.round((1 - a) * val + a * c[1]);
-                imgData.data[idx + 2] = Math.round((1 - a) * val + a * c[2]);
+            if (showOverlay) {
+                if (isUncertaintyCanvas && stds && stds[i] > 0.005) {
+                    const p = stds[i];
+                    const c = getUncertaintyColor(p);
+                    const a = c[3];
+                    imgData.data[idx]     = Math.round((1 - a) * val + a * c[0]);
+                    imgData.data[idx + 1] = Math.round((1 - a) * val + a * c[1]);
+                    imgData.data[idx + 2] = Math.round((1 - a) * val + a * c[2]);
+                } else if (!isUncertaintyCanvas && densities && densities[i] > 0.01) {
+                    const p = densities[i];
+                    const c = getProbabilityColor(p);
+                    const a = c[3];
+                    imgData.data[idx]     = Math.round((1 - a) * val + a * c[0]);
+                    imgData.data[idx + 1] = Math.round((1 - a) * val + a * c[1]);
+                    imgData.data[idx + 2] = Math.round((1 - a) * val + a * c[2]);
+                } else {
+                    imgData.data[idx]     = val;
+                    imgData.data[idx + 1] = val;
+                    imgData.data[idx + 2] = val;
+                }
             } else {
                 imgData.data[idx]     = val;
                 imgData.data[idx + 1] = val;
@@ -2124,20 +2662,55 @@ async function renderSlice(axis, index, canvas) {
             ctx.stroke();
         }
         
-        // Outlines aligned with 3D colors
-        if (data.contours.tumor) {
-            data.contours.tumor.forEach(c => drawPolyline(c, '#ef4444')); // Red (Gross Tumor Volume)
-        }
-        if (data.contours.margin) {
-            data.contours.margin.forEach(c => drawPolyline(c, '#06b6d4')); // Cyan (Standard Target Volume)
-        }
-        if (data.contours.density) {
-            data.contours.density.forEach(c => drawPolyline(c, '#ffaa00', 2.2)); // Thick Gold (MarginSense Predicted CTV)
+        // Outlines aligned with ViewMode
+        if (isEnsembleMode) {
+            if (canvas.id === 'cv-axial') {
+                // Prediction Map contours
+                if (data.contours.tumor) {
+                    data.contours.tumor.forEach(c => drawPolyline(c, '#ef4444')); // Red (Gross Tumor Volume)
+                }
+                if (data.contours.optimized_density) {
+                    data.contours.optimized_density.forEach(c => drawPolyline(c, '#ec4899', 2.0)); // Pink (Optimized Target)
+                }
+            } else if (canvas.id === 'cv-coronal') {
+                // Uncertainty Map contours
+                if (data.contours.tumor) {
+                    data.contours.tumor.forEach(c => drawPolyline(c, '#ef4444')); // Red (Gross Tumor Volume) for reference
+                }
+            } else if (canvas.id === 'cv-sagittal') {
+                // Safety Margin Map contours
+                if (data.contours.margin) {
+                    data.contours.margin.forEach(c => drawPolyline(c, '#06b6d4')); // Cyan (Standard Target Volume)
+                }
+                if (data.contours.optimized_density) {
+                    data.contours.optimized_density.forEach(c => drawPolyline(c, '#ffaa00', 1.5)); // Amber (Optimized MarginSense 0.35)
+                }
+                if (data.contours.safety_margin) {
+                    data.contours.safety_margin.forEach(c => drawPolyline(c, '#a855f7', 2.5)); // Thick Purple (Recommended Safety Margin)
+                }
+            }
+        } else {
+            // MPR Mode contours
+            if (data.contours.tumor) {
+                data.contours.tumor.forEach(c => drawPolyline(c, '#ef4444')); // Red (Gross Tumor Volume)
+            }
+            if (data.contours.margin) {
+                data.contours.margin.forEach(c => drawPolyline(c, '#06b6d4')); // Cyan (Standard Target Volume)
+            }
+            if (data.contours.density) {
+                data.contours.density.forEach(c => drawPolyline(c, '#ffaa00', 1.5)); // Amber (MarginSense CTV 0.35)
+            }
+            if (data.contours.optimized_density && document.getElementById('chk-optimized-density').checked) {
+                data.contours.optimized_density.forEach(c => drawPolyline(c, '#ec4899', 2.5)); // Thick Magenta (Optimized MarginSense CTV)
+            }
+            if (data.contours.safety_margin) {
+                data.contours.safety_margin.forEach(c => drawPolyline(c, '#a855f7', 2.0)); // Purple (Recommended Safety Margin)
+            }
         }
         
         // Optional isoprobability contours
         const showContours = document.getElementById('chk-prob-contours').checked;
-        if (showContours && data.contours) {
+        if (showContours && data.contours && !isEnsembleMode) {
             if (data.contours.probability_95) {
                 data.contours.probability_95.forEach(c => drawPolyline(c, 'rgba(239, 68, 68, 0.85)', 1.0)); // 95% Red
             }
@@ -2328,7 +2901,174 @@ loadTrainingCurves();
 animate();
 
 // ═══════════════════════════════════════════════════════════════════════
+//  Model Evaluation Modal
+//  Computes HD95 (95th-pctl Hausdorff), Surface Dice @ 2mm, ASD, and
+//  Physics Residual via /api/evaluation_metrics.
+//  Renders three clearly-labeled sections:
+//    1. Clinical Accuracy   2. Efficiency   3. Model Sanity Check
+//  Includes small-N warning and per-patient collapsible detail.
+// ═══════════════════════════════════════════════════════════════════════
+
+const METHOD_SHORT = {
+    "Clinical Standard (Uniform Margin)": "Standard Margin",
+    "Vanilla PINN (Per-Patient)":         "Vanilla PINN",
+    "MarginSense (Ensemble Amortized)":   "MarginSense",
+};
+const METHOD_COLORS = {
+    "Clinical Standard (Uniform Margin)": "#22d3ee",
+    "Vanilla PINN (Per-Patient)":         "#f59e0b",
+    "MarginSense (Ensemble Amortized)":   "#a78bfa",
+};
+
+let evalData = null;
+
+function _evalTableStyle() {
+    return `
+        <style>
+            .eval-tbl { width:100%; border-collapse:collapse; font-size:10px; font-family:'IBM Plex Mono',monospace; }
+            .eval-tbl th { background:#1a1d2e; color:#94a3b8; text-align:center; padding:6px 10px;
+                           border:1px solid #2d2d36; font-weight:600; font-size:9px; }
+            .eval-tbl th.row-hdr { text-align:left; min-width:180px; }
+            .eval-tbl td { padding:5px 10px; border:1px solid #2d2d36; color:#e2e8f0; text-align:center; }
+            .eval-tbl td.row-hdr { text-align:left; color:#94a3b8; font-size:9px; }
+            .eval-tbl tr.ms-row td { background:#1a1227; }
+            .eval-tbl tr:hover td { background:#1c1f2e; }
+            .eval-tbl .mean-val { color:#fff; font-weight:700; }
+            .eval-tbl .pm { color:#64748b; font-size:8px; }
+            .eval-tbl .range { display:block; color:#4b5563; font-size:7.5px; }
+        </style>
+    `;
+}
+
+function _buildAggTable(data, metrics) {
+    const labels = data.metric_labels;
+    const methods = data.methods.filter(m => data.aggregated[m]);
+    let html = _evalTableStyle();
+    html += '<table class="eval-tbl"><thead><tr>';
+    html += '<th class="row-hdr">Metric</th>';
+    methods.forEach(m => {
+        const col = METHOD_COLORS[m] || '#94a3b8';
+        html += `<th style="color:${col};">${METHOD_SHORT[m] || m}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    metrics.forEach(key => {
+        const isMS = true;
+        html += '<tr>';
+        html += `<td class="row-hdr">${labels[key] || key}</td>`;
+        methods.forEach(m => {
+            const agg = data.aggregated[m];
+            const v = agg ? agg[key] : null;
+            const isMarginSense = m.includes('MarginSense');
+            const tdStyle = isMarginSense ? 'style="background:#1a1227;"' : '';
+            if (!v) {
+                html += `<td ${tdStyle} style="color:#3d3d46;">—</td>`;
+            } else {
+                html += `<td ${tdStyle}>
+                    <span class="mean-val">${v.mean}</span>
+                    <span class="pm"> ± ${v.std}</span>
+                    <span class="range">[${v.min} – ${v.max}]</span>
+                </td>`;
+            }
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    return html;
+}
+
+function _buildPerPatientTable(data, allMetricKeys) {
+    const labels = data.metric_labels;
+    const methods = data.methods.filter(m => data.aggregated[m]);
+    const patients = data.patients;
+
+    let html = _evalTableStyle();
+    html += '<table class="eval-tbl" style="font-size:9px;"><thead>';
+    html += '<tr><th class="row-hdr">Patient</th><th>Method</th>';
+    allMetricKeys.forEach(k => {
+        html += `<th style="font-size:8px;">${(labels[k] || k).replace('[', '<br>[')}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    patients.forEach(pid => {
+        const pdata = data.per_patient[pid] || {};
+        methods.forEach((m, mi) => {
+            const row = pdata[m];
+            if (!row) return;
+            const isMS = m.includes('MarginSense');
+            const bgStyle = isMS ? 'background:#1a1227;' : '';
+            html += `<tr style="${bgStyle}">`;
+            if (mi === 0) {
+                html += `<td rowspan="${methods.length}" class="row-hdr" style="font-weight:600; color:#fff; vertical-align:top;">${pid}</td>`;
+            }
+            const col = METHOD_COLORS[m] || '#94a3b8';
+            html += `<td style="color:${col}; font-size:8px;">${METHOD_SHORT[m] || m}</td>`;
+            allMetricKeys.forEach(k => {
+                const val = row[k];
+                if (val === null || val === undefined) {
+                    html += '<td style="color:#3d3d46;">—</td>';
+                } else {
+                    html += `<td>${typeof val === 'number' ? val : val}</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+    });
+
+    html += '</tbody></table>';
+    return html;
+}
+
+async function openEvalModal() {
+    document.getElementById('eval-modal').style.display = 'block';
+    document.getElementById('eval-loading').style.display = 'block';
+    document.getElementById('eval-content').style.display  = 'none';
+
+    try {
+        const resp = await fetch('/api/evaluation_metrics');
+        const d = await resp.json();
+        if (d.error) throw new Error(d.error);
+        evalData = d;
+
+        // Populate n-note banner
+        document.getElementById('eval-n-note').textContent = d.note;
+
+        const sections = d.metric_sections;
+
+        // Section 1: Clinical Accuracy
+        document.getElementById('eval-table-clinical').innerHTML =
+            _buildAggTable(d, sections.clinical_accuracy);
+
+        // Section 2: Efficiency
+        document.getElementById('eval-table-efficiency').innerHTML =
+            _buildAggTable(d, sections.efficiency);
+
+        // Section 3: Physics Residual
+        document.getElementById('eval-table-physics').innerHTML =
+            _buildAggTable(d, sections.model_sanity_check);
+
+        // Per-patient table (all metrics combined)
+        const allKeys = [...sections.clinical_accuracy, ...sections.efficiency, ...sections.model_sanity_check];
+        document.getElementById('eval-per-patient').innerHTML =
+            _buildPerPatientTable(d, allKeys);
+
+        document.getElementById('eval-loading').style.display = 'none';
+        document.getElementById('eval-content').style.display  = 'block';
+
+    } catch(e) {
+        document.getElementById('eval-loading').textContent = '[Error] ' + e.message;
+        console.error('Eval modal error:', e);
+    }
+}
+
+function closeEvalModal() {
+    document.getElementById('eval-modal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  Patient Report System
+
 // ═══════════════════════════════════════════════════════════════════════
 
 let currentReport = null;
@@ -2341,11 +3081,13 @@ async function openReportModal() {
     modal.classList.add('open');
 
     // Reset visuals
-    document.getElementById('rpt-slice-wrap').innerHTML = '<div class="rpt-visual-placeholder">Loading slice…</div>';
+    document.getElementById('rpt-slice-prediction-wrap').innerHTML = '<div class="rpt-visual-placeholder">Loading prediction map…</div>';
+    document.getElementById('rpt-slice-uncertainty-wrap').innerHTML = '<div class="rpt-visual-placeholder">Loading uncertainty map…</div>';
+    document.getElementById('rpt-slice-safety-wrap').innerHTML = '<div class="rpt-visual-placeholder">Loading safety map…</div>';
     document.getElementById('rpt-3d-wrap').innerHTML    = '<div class="rpt-visual-placeholder">Capturing 3D view…</div>';
 
     try {
-        const resp = await fetch(`/api/generate_report/${pid}`);
+        const resp = await fetch(`/api/generate_report/${pid}?optimal_threshold=${optimalThreshold}&lambda_val=${clinicalPriorityLambda}&z_val=${safetyMarginZ}`);
         if (!resp.ok) {
             const err = await resp.json();
             alert('Report error: ' + (err.error || 'Unknown'));
@@ -2354,6 +3096,29 @@ async function openReportModal() {
         }
         currentReport = await resp.json();
         renderReport(currentReport);
+
+        // Populate Section 6: Spread Explainability
+        // Use cached data if available, otherwise trigger a fresh fetch
+        if (lastExplainData && lastExplainData.patient_id === pid) {
+            _populateReportExplain(lastExplainData);
+        } else {
+            // Fetch explainability asynchronously and populate once ready
+            fetch(`/api/explain/${pid}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.error) {
+                        lastExplainData = d;
+                        _populateReportExplain(d);
+                        // Also update the sidebar panel
+                        document.getElementById('explain-loading').style.display = 'none';
+                        document.getElementById('explain-content').style.display = 'block';
+                        document.getElementById('explain-sector-rows').innerHTML = '';
+                        document.getElementById('explain-summary-text').textContent = d.summary_text;
+                        document.getElementById('explain-disclaimer').textContent = d.disclaimer;
+                    }
+                })
+                .catch(e => console.warn('Explainability fetch in report failed:', e));
+        }
     } catch (e) {
         alert('Failed to generate report: ' + e.message);
         modal.classList.remove('open');
@@ -2379,7 +3144,9 @@ async function renderReport(r) {
     document.getElementById('rpt-pid').textContent        = r.patient_id;
     document.getElementById('rpt-gen-at').textContent     = r.generated_at.replace('T', ' ');
     document.getElementById('rpt-model-ver').textContent  = r.model_version;
-    document.getElementById('rpt-threshold').textContent  = r.pipeline_threshold;
+    document.getElementById('rpt-threshold').innerHTML  =
+        `Optimal Threshold: <strong>${r.optimal_threshold.toFixed(2)}</strong> (Clinical Priority &lambda;=${r.optimization_lambda})<br>` +
+        `<span style="font-size:8px;color:#64748b">${r.optimization_objective}</span>`;
     document.getElementById('rpt-sequences').textContent  = (r.imaging_sequences || []).join(' · ');
     document.getElementById('rpt-meta-line').textContent  =
         `Patient: ${r.patient_id}  ·  Generated: ${r.generated_at.replace('T', ' ')}`;
@@ -2422,6 +3189,8 @@ async function renderReport(r) {
     // ── Section 3: Simulation Results ────────────────────────────────
     const sim = r.simulation || {};
     const ms  = sim.marginsense     || {};
+    const safety = sim.safety_margin || {};
+    const raw035 = sim.raw_035      || {};
     const std = sim.standard_margin || {};
     const unc = sim.uncertainty     || {};
 
@@ -2429,12 +3198,12 @@ async function renderReport(r) {
     const cardsEl = document.getElementById('rpt-metric-cards');
     cardsEl.innerHTML = '';
     const cardDefs = [
-        { label: 'MarginSense CTV Volume', val: fmt(ms.infiltration_boundary_volume_cm3, 1), unit: 'cm³', sub: 'Predicted infiltration boundary', cls: 'ms' },
-        { label: 'Recurrence Coverage', val: fmt(ms.recurrence_coverage_percent, 1), unit: '%', sub: 'MarginSense vs. known recurrence', cls: 'ms' },
-        { label: 'Healthy Tissue Irradiated', val: fmt(ms.treated_healthy_tissue_volume_cm3, 0), unit: 'cm³', sub: 'MarginSense (outside GTV)', cls: 'ms' },
+        { label: 'Optimized CTV Volume', val: fmt(ms.infiltration_boundary_volume_cm3, 1), unit: 'cm³', sub: `MarginSense (Thresh: ${r.optimal_threshold.toFixed(2)})`, cls: 'ms' },
+        { label: 'Optimized Coverage', val: fmt(ms.recurrence_coverage_percent, 1), unit: '%', sub: 'MarginSense vs. recurrence', cls: 'ms' },
+        { label: 'Safety Margin Volume', val: fmt(safety.infiltration_boundary_volume_cm3, 1), unit: 'cm³', sub: `UCB (z=${r.safety_margin_z})`, cls: 'ms' },
+        { label: 'Safety Margin Coverage', val: fmt(safety.recurrence_coverage_percent, 1), unit: '%', sub: 'MarginSense vs. recurrence', cls: 'ms' },
         { label: 'Standard CTV Volume', val: fmt(std.infiltration_boundary_volume_cm3, 1), unit: 'cm³', sub: 'Uniform 1.5 cm margin', cls: '' },
-        { label: 'Standard Coverage', val: fmt(std.recurrence_coverage_percent, 1), unit: '%', sub: 'Standard vs. known recurrence', cls: '' },
-        { label: 'Standard Healthy Vol.', val: fmt(std.treated_healthy_tissue_volume_cm3, 0), unit: 'cm³', sub: 'Standard margin (outside GTV)', cls: '' },
+        { label: 'Standard Coverage', val: fmt(std.recurrence_coverage_percent, 1), unit: '%', sub: 'Standard vs. recurrence', cls: '' },
     ];
     cardDefs.forEach(c => {
         const card = document.createElement('div');
@@ -2451,7 +3220,9 @@ async function renderReport(r) {
     const tbody = document.getElementById('rpt-cmp-tbody');
     tbody.innerHTML = '';
     const methods = [
-        { label: 'MarginSense (Ensemble Amortized)', data: ms, cls: 'ms-row' },
+        { label: 'MarginSense (Optimized Contour)', data: ms, cls: 'ms-row' },
+        { label: 'MarginSense (Safety Margin UCB)', data: safety, cls: 'ms-row' },
+        { label: 'MarginSense (Raw 0.35 Threshold)', data: raw035, cls: '' },
         { label: 'Clinical Standard (Uniform Margin)', data: std, cls: '' },
     ];
     methods.forEach(m => {
@@ -2499,36 +3270,37 @@ async function renderReport(r) {
             '<div class="rpt-visual-placeholder">3D snapshot unavailable</div>';
     }
 
-    // 2D axial slice at largest tumor cross-section
+    // 2D axial slice at largest tumor cross-section (all 3 maps)
     try {
         const pid      = r.patient_id;
         const infoResp = await fetch(`/api/slices/${pid}/info`);
         if (infoResp.ok) {
             const info     = await infoResp.json();
             const bestZ    = info.default_z !== undefined ? info.default_z : 64;
-            const sliceResp = await fetch(`/api/slices/${pid}/0/${bestZ}?modality=2`);
+            
+            // Fetch the slice data with z_val and optimal_threshold parameters
+            const sliceResp = await fetch(`/api/slices/${pid}/0/${bestZ}?modality=2&optimal_threshold=${r.optimal_threshold}&z_val=${r.safety_margin_z}`);
             if (sliceResp.ok) {
                 const sd = await sliceResp.json();
                 const W  = sd.width, H = sd.height;
-                const reportCanvas = document.createElement('canvas');
-                reportCanvas.width  = W;
-                reportCanvas.height = H;
-                const ctx = reportCanvas.getContext('2d');
+                const pix = sd.pixels;
+                const densities = sd.density_values;
+                const stds = sd.std_values;
+                const c = sd.contours || {};
 
-                // Draw grayscale image
-                const imgData = ctx.createImageData(W, H);
-                const pix     = sd.pixels;
-                for (let i = 0; i < pix.length; i++) {
-                    const v = pix[i];
-                    imgData.data[i*4]   = v;
-                    imgData.data[i*4+1] = v;
-                    imgData.data[i*4+2] = v;
-                    imgData.data[i*4+3] = 255;
+                function drawBasePixels(ctx) {
+                    const imgData = ctx.createImageData(W, H);
+                    for (let i = 0; i < pix.length; i++) {
+                        const v = pix[i];
+                        imgData.data[i*4]   = v;
+                        imgData.data[i*4+1] = v;
+                        imgData.data[i*4+2] = v;
+                        imgData.data[i*4+3] = 255;
+                    }
+                    ctx.putImageData(imgData, 0, 0);
                 }
-                ctx.putImageData(imgData, 0, 0);
 
-                // Draw contours
-                function drawContours(contours, color, lw) {
+                function drawContours(ctx, contours, color, lw) {
                     ctx.strokeStyle = color;
                     ctx.lineWidth   = lw;
                     ctx.lineCap     = 'round';
@@ -2541,26 +3313,99 @@ async function renderReport(r) {
                         ctx.stroke();
                     });
                 }
-                const c = sd.contours || {};
-                drawContours(c.tumor   || [], '#ef4444', 1.5);  // red: GTV
-                drawContours(c.margin  || [], '#22d3ee', 1.5);  // cyan: standard CTV
-                drawContours(c.density || [], '#f59e0b', 1.5);  // amber: MarginSense CTV
 
-                reportCanvas.style.cssText = 'width:100%;display:block;image-rendering:pixelated;background:#0c0c0e;';
-                const sliceWrap = document.getElementById('rpt-slice-wrap');
-                sliceWrap.innerHTML = '';
-                sliceWrap.appendChild(reportCanvas);
+                // 1. Prediction Map Canvas
+                const canvasPred = document.createElement('canvas');
+                canvasPred.width = W; canvasPred.height = H;
+                const ctxPred = canvasPred.getContext('2d');
+                drawBasePixels(ctxPred);
+                
+                // Draw mean density color overlay
+                if (densities) {
+                    const imgData = ctxPred.getImageData(0, 0, W, H);
+                    for (let i = 0; i < pix.length; i++) {
+                        if (densities[i] > 0.01) {
+                            const p = densities[i];
+                            const col = getProbabilityColor(p);
+                            const a = col[3];
+                            const val = pix[i];
+                            imgData.data[i*4]     = Math.round((1 - a) * val + a * col[0]);
+                            imgData.data[i*4+1]   = Math.round((1 - a) * val + a * col[1]);
+                            imgData.data[i*4+2]   = Math.round((1 - a) * val + a * col[2]);
+                        }
+                    }
+                    ctxPred.putImageData(imgData, 0, 0);
+                }
+                drawContours(ctxPred, c.tumor || [], '#ef4444', 1.5);
+                drawContours(ctxPred, c.optimized_density || [], '#ec4899', 2.0);
+                
+                canvasPred.style.cssText = 'width:100%;display:block;image-rendering:pixelated;background:#0c0c0e;';
+                const wrapPred = document.getElementById('rpt-slice-prediction-wrap');
+                wrapPred.innerHTML = '';
+                wrapPred.appendChild(canvasPred);
+                const lblPred = document.createElement('div');
+                lblPred.style.cssText = 'font-size:8px;color:#64748b;padding:4px 8px;font-family:"IBM Plex Mono",monospace;background:#f8fafc;border-top:1px solid #e2e8f0;';
+                lblPred.textContent = `Axial z=${bestZ} · Prediction (Mean) · Opt Thresh: ${r.optimal_threshold.toFixed(2)}`;
+                wrapPred.appendChild(lblPred);
 
-                // Add slice index label
-                const lbl = document.createElement('div');
-                lbl.style.cssText = 'font-size:9px;color:#94a3b8;padding:4px 8px;font-family:"IBM Plex Mono",monospace;background:#f8fafc;border-top:1px solid #e2e8f0;';
-                lbl.textContent   = `Axial slice z=${bestZ} · FLAIR · Both margins overlaid`;
-                sliceWrap.appendChild(lbl);
+                // 2. Uncertainty Map Canvas
+                const canvasUnc = document.createElement('canvas');
+                canvasUnc.width = W; canvasUnc.height = H;
+                const ctxUnc = canvasUnc.getContext('2d');
+                drawBasePixels(ctxUnc);
+                
+                // Draw std deviation color overlay
+                if (stds) {
+                    const imgData = ctxUnc.getImageData(0, 0, W, H);
+                    for (let i = 0; i < pix.length; i++) {
+                        if (stds[i] > 0.005) {
+                            const p = stds[i];
+                            const col = getUncertaintyColor(p);
+                            const a = col[3];
+                            const val = pix[i];
+                            imgData.data[i*4]     = Math.round((1 - a) * val + a * col[0]);
+                            imgData.data[i*4+1]   = Math.round((1 - a) * val + a * col[1]);
+                            imgData.data[i*4+2]   = Math.round((1 - a) * val + a * col[2]);
+                        }
+                    }
+                    ctxUnc.putImageData(imgData, 0, 0);
+                }
+                drawContours(ctxUnc, c.tumor || [], '#ef4444', 1.5);
+                
+                canvasUnc.style.cssText = 'width:100%;display:block;image-rendering:pixelated;background:#0c0c0e;';
+                const wrapUnc = document.getElementById('rpt-slice-uncertainty-wrap');
+                wrapUnc.innerHTML = '';
+                wrapUnc.appendChild(canvasUnc);
+                const lblUnc = document.createElement('div');
+                lblUnc.style.cssText = 'font-size:8px;color:#64748b;padding:4px 8px;font-family:"IBM Plex Mono",monospace;background:#f8fafc;border-top:1px solid #e2e8f0;';
+                lblUnc.textContent = `Axial z=${bestZ} · Uncertainty (Std Dev)`;
+                wrapUnc.appendChild(lblUnc);
+
+                // 3. Recommended Safety Margin Canvas
+                const canvasSafe = document.createElement('canvas');
+                canvasSafe.width = W; canvasSafe.height = H;
+                const ctxSafe = canvasSafe.getContext('2d');
+                drawBasePixels(ctxSafe);
+                
+                drawContours(ctxSafe, c.margin || [], '#06b6d4', 1.2);
+                drawContours(ctxSafe, c.optimized_density || [], '#ffaa00', 1.2);
+                drawContours(ctxSafe, c.safety_margin || [], '#a855f7', 2.5);
+                
+                canvasSafe.style.cssText = 'width:100%;display:block;image-rendering:pixelated;background:#0c0c0e;';
+                const wrapSafe = document.getElementById('rpt-slice-safety-wrap');
+                wrapSafe.innerHTML = '';
+                wrapSafe.appendChild(canvasSafe);
+                const lblSafe = document.createElement('div');
+                lblSafe.style.cssText = 'font-size:8px;color:#64748b;padding:4px 8px;font-family:"IBM Plex Mono",monospace;background:#f8fafc;border-top:1px solid #e2e8f0;';
+                lblSafe.textContent = `Axial z=${bestZ} · Safety Margin (UCB z=${r.safety_margin_z})`;
+                wrapSafe.appendChild(lblSafe);
             }
         }
     } catch (e) {
-        document.getElementById('rpt-slice-wrap').innerHTML =
-            '<div class="rpt-visual-placeholder">Slice unavailable — run pipeline first</div>';
+        console.warn("Failed to render report maps:", e);
+        ['rpt-slice-prediction-wrap', 'rpt-slice-uncertainty-wrap', 'rpt-slice-safety-wrap'].forEach(id => {
+            document.getElementById(id).innerHTML = '<div class="rpt-visual-placeholder">Error loading map</div>';
+        });
     }
 
     // ── Section 5: Discussion Points ─────────────────────────────────
@@ -2619,6 +3464,141 @@ async function renderReport(r) {
     if (flags.length === 0 && caveats.length === 0 && (unc.high_conf_pct === null || unc.high_conf_pct === undefined)) {
         discBody.innerHTML = '<div style="color:#64748b;font-style:italic;font-size:12px;">No flags generated — run the full pipeline to populate discussion points.</div>';
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SPREAD EXPLAINABILITY MODULE
+// Fetches /api/explain/<patient_id> and populates:
+//   1. The sidebar SPREAD EXPLAINABILITY panel
+//   2. Section 6 of the patient report modal
+// No LLM text: all content is derived from the server's template-
+// filled response (sector analysis, WM fractions, D(x), PCA).
+// ═══════════════════════════════════════════════════════════════
+
+let lastExplainData = null;  // cached so report population can reuse it
+
+// Colour palette for the 6 sectors (used in sidebar bar chart)
+const SECTOR_COLORS = {
+    superior:  '#60a5fa',
+    inferior:  '#34d399',
+    anterior:  '#f59e0b',
+    posterior: '#fb923c',
+    medial:    '#a78bfa',
+    lateral:   '#f472b6',
+};
+
+async function loadExplainability(patientId) {
+    const loadingEl  = document.getElementById('explain-loading');
+    const contentEl  = document.getElementById('explain-content');
+    const btnExplain = document.getElementById('btn-explain');
+
+    if (!patientId) {
+        loadingEl.textContent = 'Select a patient first.';
+        return;
+    }
+
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    loadingEl.textContent   = '[...] Computing sector analysis…';
+    if (btnExplain) btnExplain.disabled = true;
+
+    try {
+        const resp = await fetch(`/api/explain/${patientId}`);
+        const d    = await resp.json();
+
+        if (d.error) {
+            loadingEl.textContent = `[Error] ${d.error}`;
+            if (btnExplain) btnExplain.disabled = false;
+            return;
+        }
+
+        lastExplainData = d;
+
+        // ── 1. Populate sidebar panel ─────────────────────────────────────────
+        const sectors  = d.sector_results;  // { superior: {extension_mm, wm_fraction, mean_D}, ... }
+        const maxExt   = Math.max(...Object.values(sectors).map(s => s.extension_mm)) || 1;
+        const rowsEl   = document.getElementById('explain-sector-rows');
+        rowsEl.innerHTML = '';
+
+        Object.entries(sectors)
+            .sort((a, b) => b[1].extension_mm - a[1].extension_mm)
+            .forEach(([name, s]) => {
+                const isDominant = (name === d.dominant_sector);
+                const pct = ((s.extension_mm / maxExt) * 100).toFixed(0);
+                const col = SECTOR_COLORS[name] || '#94a3b8';
+                const row = document.createElement('div');
+                row.style.cssText = 'margin-bottom:5px;';
+                row.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                        <span style="font-size:8px; font-family:var(--font-mono); color:${isDominant ? col : '#94a3b8'}; font-weight:${isDominant ? 700 : 400}; text-transform:uppercase; letter-spacing:.05em;">
+                            ${isDominant ? '▶ ' : ''}${name}
+                        </span>
+                        <span style="font-size:8px; font-family:var(--font-mono); color:${isDominant ? '#e2e8f0' : '#64748b'};">
+                            ${s.extension_mm.toFixed(1)} mm
+                        </span>
+                    </div>
+                    <div style="height:5px; border-radius:3px; background:rgba(255,255,255,0.08); overflow:hidden;">
+                        <div style="height:100%; width:${pct}%; background:${col}; border-radius:3px; transition:width .4s;"></div>
+                    </div>
+                `;
+                rowsEl.appendChild(row);
+            });
+
+        document.getElementById('explain-summary-text').textContent = d.summary_text;
+        document.getElementById('explain-disclaimer').textContent   = d.disclaimer;
+
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+
+        // ── 2. Populate report Section 6 ──────────────────────────────────────
+        _populateReportExplain(d);
+
+    } catch (e) {
+        loadingEl.textContent = `[Error] ${e.message}`;
+        console.error('loadExplainability error:', e);
+    } finally {
+        if (btnExplain) btnExplain.disabled = false;
+    }
+}
+
+function _populateReportExplain(d) {
+    if (!d) return;
+
+    // Sector table
+    const tbody = document.getElementById('rpt-sector-tbody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        Object.entries(d.sector_results)
+            .sort((a, b) => b[1].extension_mm - a[1].extension_mm)
+            .forEach(([name, s]) => {
+                const isDom = (name === d.dominant_sector);
+                const tr = document.createElement('tr');
+                tr.style.cssText = isDom ? 'background:#fdf4ff; font-weight:600;' : '';
+                tr.innerHTML = `
+                    <td style="padding:4px 8px; border:1px solid #e2e8f0; text-transform:capitalize; color:${isDom ? '#7c3aed' : '#374151'};">
+                        ${isDom ? '▶ ' : ''}${name}
+                    </td>
+                    <td style="text-align:center; padding:4px 8px; border:1px solid #e2e8f0; color:${isDom ? '#7c3aed' : '#374151'};">
+                        ${s.extension_mm.toFixed(1)}
+                    </td>
+                    <td style="text-align:center; padding:4px 8px; border:1px solid #e2e8f0;">
+                        ${s.wm_fraction.toFixed(1)}% <span style="color:#94a3b8; font-size:8px;">(global: ${d.global_wm_fraction}%)</span>
+                    </td>
+                    <td style="text-align:center; padding:4px 8px; border:1px solid #e2e8f0;">
+                        ${s.mean_D.toFixed(4)}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+    }
+
+    // Summary text
+    const sumEl = document.getElementById('rpt-explain-summary');
+    if (sumEl) sumEl.textContent = d.summary_text;
+
+    // Disclaimer (non-removable — always the same fixed string)
+    const discEl = document.getElementById('rpt-explain-disclaimer');
+    if (discEl) discEl.textContent = d.disclaimer;
 }
 
 function exportReportPDF() {

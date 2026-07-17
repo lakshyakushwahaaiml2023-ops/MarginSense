@@ -4,24 +4,24 @@
     "recurrence_volume_cm3": 48.7690023164032,
     "results": {
         "Clinical Standard (Uniform Margin)": {
-            "processing_time_seconds": 1.3206695999979274,
+            "processing_time_seconds": 0.47160400000575464,
             "recurrence_coverage_percent": 100.0,
             "treated_healthy_tissue_volume_cm3": 164.66600782121532,
             "total_target_volume_cm3": 206.9310098286951,
             "hardware_device": "CPU (scipy EDT)"
         },
         "Vanilla PINN (Per-Patient)": {
-            "processing_time_seconds": 36.210897199998726,
+            "processing_time_seconds": 33.49104890000308,
             "recurrence_coverage_percent": 100.0,
-            "treated_healthy_tissue_volume_cm3": 1928.7670916115167,
-            "total_target_volume_cm3": 1971.0320936189964,
+            "treated_healthy_tissue_volume_cm3": 1906.9830905768322,
+            "total_target_volume_cm3": 1949.248092584312,
             "hardware_device": "GPU (NVIDIA GeForce RTX 4050 Laptop GPU)"
         },
         "MarginSense (Ensemble Amortized)": {
-            "processing_time_seconds": 6.316422600008082,
-            "recurrence_coverage_percent": 86.76618343619923,
-            "treated_healthy_tissue_volume_cm3": 160.58600762742572,
-            "total_target_volume_cm3": 201.50000957073644,
+            "processing_time_seconds": 1.9651989999983925,
+            "recurrence_coverage_percent": 85.62406446718202,
+            "treated_healthy_tissue_volume_cm3": 102.2890048584668,
+            "total_target_volume_cm3": 142.77000678121112,
             "hardware_device": "GPU (NVIDIA GeForce RTX 4050 Laptop GPU)"
         }
     }
