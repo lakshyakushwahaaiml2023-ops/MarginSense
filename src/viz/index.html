@@ -300,6 +300,327 @@
             border-bottom: 2px solid #ffaa00; /* Amber accent */
             background: #1e1e24;
         }
+
+        /* ── Report Modal ──────────────────────────────────────────── */
+        #report-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            overflow-y: auto;
+            backdrop-filter: blur(6px);
+        }
+        #report-modal.open { display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+        #report-doc {
+            background: #ffffff;
+            color: #111827;
+            max-width: 860px;
+            width: 100%;
+            border-radius: 4px;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+            font-family: 'IBM Plex Sans', Georgia, serif;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+        .rpt-header {
+            background: #0f172a;
+            color: #fff;
+            padding: 28px 36px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .rpt-header-left h2 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #fff;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: none;
+        }
+        .rpt-header-left .rpt-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 4px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-header-actions { display: flex; gap: 10px; align-items: center; }
+        .rpt-btn-pdf {
+            background: #ffaa00;
+            color: #000;
+            border: none;
+            padding: 8px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rpt-btn-pdf:hover { background: #ffc233; }
+        .rpt-btn-close {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+        }
+        .rpt-btn-close:hover { background: #1e293b; color: #fff; }
+        .rpt-body { padding: 32px 36px; display: flex; flex-direction: column; gap: 28px; }
+        .rpt-section { border: 1px solid #e2e8f0; border-radius: 3px; overflow: hidden; }
+        .rpt-section-title {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 18px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #475569;
+            font-family: 'IBM Plex Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rpt-section-body { padding: 18px; }
+        .rpt-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+        .rpt-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .rpt-field { display: flex; flex-direction: column; gap: 2px; }
+        .rpt-field-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #94a3b8;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-field-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-default-flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .rpt-metric-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 3px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .rpt-metric-card.ms {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+        .rpt-metric-card .metric-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #94a3b8;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+        }
+        .rpt-metric-card .metric-val {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.1;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-metric-card.ms .metric-val { color: #92400e; }
+        .rpt-metric-card .metric-sub {
+            font-size: 10px;
+            color: #64748b;
+        }
+        .rpt-uncertainty-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-left: 4px solid #0ea5e9;
+            border-radius: 3px;
+            padding: 14px 16px;
+            font-size: 12px;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        .rpt-uncertainty-box strong { color: #0c4a6e; }
+        .rpt-comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-comparison-table th {
+            background: #f1f5f9;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .rpt-comparison-table td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+        .rpt-comparison-table tr.ms-row td {
+            background: #fffbeb;
+            font-weight: 600;
+            color: #78350f;
+        }
+        .rpt-flag-card {
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #f59e0b;
+            border-radius: 3px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #1e293b;
+        }
+        .rpt-flag-card:last-child { margin-bottom: 0; }
+        .rpt-flag-card .flag-type {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #b45309;
+            font-family: 'IBM Plex Mono', monospace;
+            margin-bottom: 5px;
+        }
+        .rpt-flag-card .flag-vol {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            color: #92400e;
+        }
+        .rpt-caveat-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .rpt-caveat-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+            color: #374151;
+            padding: 8px 12px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 3px;
+        }
+        .rpt-caveat-list li::before {
+            content: '⚠';
+            flex-shrink: 0;
+            color: #f59e0b;
+            font-size: 13px;
+        }
+        .rpt-visual-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .rpt-visual-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .rpt-visual-card .vc-label {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #64748b;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-visual-card img, .rpt-visual-card canvas {
+            width: 100%;
+            display: block;
+            background: #0c0c0e;
+        }
+        .rpt-visual-placeholder {
+            width: 100%;
+            height: 180px;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #475569;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .rpt-disclaimer {
+            background: #fff1f2;
+            border: 2px solid #fecdd3;
+            border-radius: 3px;
+            padding: 16px 20px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #9f1239;
+            font-weight: 600;
+        }
+        .rpt-disclaimer .disc-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'IBM Plex Mono', monospace;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        /* ── Print stylesheet ──────────────────────────────────────── */
+        @media print {
+            body * { visibility: hidden !important; }
+            #report-doc, #report-doc * { visibility: visible !important; }
+            #report-doc {
+                position: fixed;
+                inset: 0;
+                margin: 0;
+                box-shadow: none;
+                border-radius: 0;
+                color: #000 !important;
+                max-width: none;
+            }
+            .rpt-header-actions { display: none !important; }
+            .rpt-body { padding: 20px 28px; }
+            .rpt-section { page-break-inside: avoid; }
+            .rpt-disclaimer { page-break-inside: avoid; }
+        }
     </style>
 </head>
 <body>
@@ -440,6 +761,9 @@
                 </thead>
                 <tbody><tr><td colspan="4" style="text-align:center;color:var(--muted)">Run planning to generate report.</td></tr></tbody>
             </table>
+            <button class="btn" id="btn-generate-report" style="margin-top:10px; background:#1a1a20; border-color:#2d2d36; display:none;" onclick="openReportModal()">
+                &#x2398; Generate Patient Report
+            </button>
         </div>
 
         <div class="panel" style="height:158px">
@@ -540,6 +864,141 @@
         </div>
     </div>
 
+    <!-- ── Report Modal ──────────────────────────────────────── -->
+    <div id="report-modal" role="dialog" aria-modal="true" aria-label="Patient Report">
+        <div id="report-doc">
+            <!-- Header -->
+            <div class="rpt-header">
+                <div class="rpt-header-left">
+                    <h2>MarginSense — Patient Planning Report</h2>
+                    <div class="rpt-sub" id="rpt-meta-line">Loading…</div>
+                </div>
+                <div class="rpt-header-actions">
+                    <button class="rpt-btn-pdf" id="btn-export-pdf" onclick="exportReportPDF()">&#x2B73; Export PDF</button>
+                    <button class="rpt-btn-close" onclick="closeReportModal()">✕ Close</button>
+                </div>
+            </div>
+
+            <div class="rpt-body">
+
+                <!-- SECTION 1: Case Header -->
+                <div class="rpt-section" id="rpt-sec-header">
+                    <div class="rpt-section-title">&#x25A0; 1 — Case Header</div>
+                    <div class="rpt-section-body">
+                        <div class="rpt-grid-2" style="gap:14px 32px">
+                            <div class="rpt-field">
+                                <span class="rpt-field-label">Patient ID</span>
+                                <span class="rpt-field-value" id="rpt-pid">—</span>
+                            </div>
+                            <div class="rpt-field">
+                                <span class="rpt-field-label">Report Generated</span>
+                                <span class="rpt-field-value" id="rpt-gen-at">—</span>
+                            </div>
+                            <div class="rpt-field">
+                                <span class="rpt-field-label">Model Version</span>
+                                <span class="rpt-field-value" id="rpt-model-ver" style="font-size:11px">—</span>
+                            </div>
+                            <div class="rpt-field">
+                                <span class="rpt-field-label">Density Threshold</span>
+                                <span class="rpt-field-value" id="rpt-threshold">—</span>
+                            </div>
+                            <div class="rpt-field" style="grid-column:1/-1">
+                                <span class="rpt-field-label">Imaging Sequences Used</span>
+                                <span class="rpt-field-value" id="rpt-sequences" style="font-size:12px">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Input Summary -->
+                <div class="rpt-section" id="rpt-sec-inputs">
+                    <div class="rpt-section-title">&#x25A0; 2 — Input Summary (Clinical Covariates)</div>
+                    <div class="rpt-section-body">
+                        <div style="font-size:11px; color:#64748b; margin-bottom:14px; font-style:italic;">
+                            Fields marked <span class="rpt-default-flag">&#9651; LIT. DEFAULT</span> were not provided for this patient and used a population-level literature default. These are assumptions, not measured values.
+                        </div>
+                        <div class="rpt-grid-2" id="rpt-cov-grid" style="gap:12px 32px"></div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: Simulation Results -->
+                <div class="rpt-section" id="rpt-sec-sim">
+                    <div class="rpt-section-title">&#x25A0; 3 — Simulation Results</div>
+                    <div class="rpt-section-body" style="display:flex; flex-direction:column; gap:18px">
+
+                        <!-- Metric cards -->
+                        <div class="rpt-grid-3" id="rpt-metric-cards"></div>
+
+                        <!-- Comparison table -->
+                        <div>
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#94a3b8; font-family:'IBM Plex Mono',monospace; margin-bottom:8px;">Method Comparison</div>
+                            <table class="rpt-comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Method</th>
+                                        <th>Processing</th>
+                                        <th>Recurrence Coverage</th>
+                                        <th>Healthy Tissue Volume</th>
+                                        <th>Target Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rpt-cmp-tbody"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Uncertainty summary -->
+                        <div>
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#94a3b8; font-family:'IBM Plex Mono',monospace; margin-bottom:8px;">Uncertainty Summary</div>
+                            <div class="rpt-uncertainty-box" id="rpt-uncertainty-text">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: Visual Attachments -->
+                <div class="rpt-section" id="rpt-sec-visuals">
+                    <div class="rpt-section-title">&#x25A0; 4 — Visual Attachments</div>
+                    <div class="rpt-section-body">
+                        <div class="rpt-visual-grid">
+                            <div class="rpt-visual-card">
+                                <div class="vc-label">2D Axial Slice — Largest Tumor Cross-Section (Both Margins Overlaid)</div>
+                                <div id="rpt-slice-wrap"><div class="rpt-visual-placeholder">Loading slice…</div></div>
+                            </div>
+                            <div class="rpt-visual-card">
+                                <div class="vc-label">3D Volume View — Current Viewport</div>
+                                <div id="rpt-3d-wrap"><div class="rpt-visual-placeholder">Capturing 3D view…</div></div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px; color:#94a3b8; margin-top:10px; font-style:italic;">
+                            Slice: FLAIR modality at the axial plane with the largest tumor cross-section.
+                            Contour colours: <strong style="color:#ef4444">red</strong> = GTV, <strong style="color:#22d3ee">cyan</strong> = Standard CTV, <strong style="color:#f59e0b">amber</strong> = MarginSense CTV.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: Discussion Points -->
+                <div class="rpt-section" id="rpt-sec-discussion">
+                    <div class="rpt-section-title">&#x25A0; 5 — Discussion Points for Clinical Review</div>
+                    <div class="rpt-section-body">
+                        <div style="font-size:11px; color:#64748b; margin-bottom:14px; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:3px; font-style:italic;">
+                            <strong>Note:</strong> The following are flags for a radiation oncologist to weigh. This section does <strong>not</strong> constitute a recommended treatment plan.
+                        </div>
+                        <div id="rpt-discussion-body"></div>
+                    </div>
+                </div>
+
+                <!-- SECTION 6: Disclaimer (always visible, non-collapsible) -->
+                <div class="rpt-disclaimer">
+                    <div class="disc-title">&#9888; Clinical Disclaimer</div>
+                    Generated by a research prototype. Not a validated clinical tool. Not a substitute for physician judgment.
+                    All findings require review by a qualified radiation oncology team before any use in treatment planning.
+                    Uncertainty estimates and spatial predictions are outputs of a physics-informed neural network ensemble
+                    and have not undergone prospective clinical validation.
+                </div>
+
+            </div><!-- /rpt-body -->
+        </div><!-- /report-doc -->
+    </div><!-- /report-modal -->
+
     <!-- Bottom bar -->
     <div id="bottom-bar">
         <button class="btn-sm" id="btn-play" style="width:72px">Play</button>
@@ -617,7 +1076,7 @@ scene.fog        = new THREE.FogExp2(0x0c0c0e, 0.0035);
 const camera   = new THREE.PerspectiveCamera(42, wrap.clientWidth / wrap.clientHeight, 0.1, 2000);
 camera.position.set(60, 35, 80);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(wrap.clientWidth, wrap.clientHeight);
 
@@ -905,31 +1364,7 @@ document.getElementById('sel-patient').addEventListener('change', e => {
     loadPatientScene(e.target.value);
 });
 
-// ── Metrics ────────────────────────────────────────────────────────────
-async function updateMetrics() {
-    const pid = document.getElementById('sel-patient').value;
-    try {
-        const resp = await fetch(`/api/comparison/${pid}`);
-        const data = await resp.json();
-        const tbody = document.querySelector('#tbl-comparison tbody');
-        tbody.innerHTML = '';
-        const keys = Object.keys(data.results || {});
-        keys.forEach(method => {
-            const r = data.results[method];
-            const tr = document.createElement('tr');
-            if (method.includes('MarginSense')) tr.classList.add('hl');
-            
-            let short = method
-                .replace('Clinical Standard 1.5cm', 'Standard CTV')
-                .replace('Clinical Standard', 'Standard CTV')
-                .replace('Vanilla PINN (Per-Patient)', 'Vanilla PINN CTV')
-                .replace('MarginSense (Ensemble Amortized)', 'MarginSense CTV');
-                
-            tr.innerHTML = `<td>${short}</td><td>${r.processing_time_seconds.toFixed(1)}s</td><td>${r.recurrence_coverage_percent.toFixed(1)}%</td><td>${r.treated_healthy_tissue_volume_cm3.toFixed(0)} cm³</td>`;
-            tbody.appendChild(tr);
-        });
-    } catch (_) {}
-}
+// ── Metrics — see updateMetrics() definition in Report System section below ──
 
 async function loadTrainingCurves() {
     try {
@@ -991,6 +1426,8 @@ document.getElementById('btn-run').addEventListener('click', async () => {
                     stopGpuPoll();
                     await loadPatientScene(pid);
                     updateMetrics();
+                    // Show Generate Report button once pipeline completes
+                    document.getElementById('btn-generate-report').style.display = 'block';
                 }
             } catch (e) {
                 console_.textContent += `\n[Error] Log poll failed: ${e}`;
@@ -1462,6 +1899,317 @@ async function handleUpload(event) {
 fetchPatients();
 loadTrainingCurves();
 animate();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Patient Report System
+// ═══════════════════════════════════════════════════════════════════════
+
+let currentReport = null;
+
+async function openReportModal() {
+    const pid = document.getElementById('sel-patient').value;
+    if (!pid) return;
+
+    const modal = document.getElementById('report-modal');
+    modal.classList.add('open');
+
+    // Reset visuals
+    document.getElementById('rpt-slice-wrap').innerHTML = '<div class="rpt-visual-placeholder">Loading slice…</div>';
+    document.getElementById('rpt-3d-wrap').innerHTML    = '<div class="rpt-visual-placeholder">Capturing 3D view…</div>';
+
+    try {
+        const resp = await fetch(`/api/generate_report/${pid}`);
+        if (!resp.ok) {
+            const err = await resp.json();
+            alert('Report error: ' + (err.error || 'Unknown'));
+            modal.classList.remove('open');
+            return;
+        }
+        currentReport = await resp.json();
+        renderReport(currentReport);
+    } catch (e) {
+        alert('Failed to generate report: ' + e.message);
+        modal.classList.remove('open');
+    }
+}
+
+function closeReportModal() {
+    document.getElementById('report-modal').classList.remove('open');
+}
+
+// Close on backdrop click
+document.getElementById('report-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeReportModal();
+});
+
+function fmt(v, dec = 1, unit = '') {
+    if (v === null || v === undefined) return 'N/A';
+    return parseFloat(v).toFixed(dec) + unit;
+}
+
+async function renderReport(r) {
+    // ── Section 1: Case Header ────────────────────────────────────────
+    document.getElementById('rpt-pid').textContent        = r.patient_id;
+    document.getElementById('rpt-gen-at').textContent     = r.generated_at.replace('T', ' ');
+    document.getElementById('rpt-model-ver').textContent  = r.model_version;
+    document.getElementById('rpt-threshold').textContent  = r.pipeline_threshold;
+    document.getElementById('rpt-sequences').textContent  = (r.imaging_sequences || []).join(' · ');
+    document.getElementById('rpt-meta-line').textContent  =
+        `Patient: ${r.patient_id}  ·  Generated: ${r.generated_at.replace('T', ' ')}`;
+
+    // ── Section 2: Clinical Covariates ────────────────────────────────
+    const covGrid = document.getElementById('rpt-cov-grid');
+    covGrid.innerHTML = '';
+    const covLabels = {
+        age: 'Age', kps: 'KPS Score', idh_status: 'IDH Status',
+        mgmt_status: 'MGMT Status', resection_extent: 'Extent of Resection', laterality: 'Laterality'
+    };
+    for (const [key, info] of Object.entries(r.covariates || {})) {
+        const div = document.createElement('div');
+        div.className = 'rpt-field';
+        const flagHtml = info.is_literature_default
+            ? '<span class="rpt-default-flag">&#9651; Lit. Default</span>'
+            : '';
+        div.innerHTML = `
+            <span class="rpt-field-label">${covLabels[key] || key}</span>
+            <span class="rpt-field-value">${info.value}${flagHtml}</span>
+        `;
+        covGrid.appendChild(div);
+    }
+
+    // ── Section 3: Simulation Results ────────────────────────────────
+    const sim = r.simulation || {};
+    const ms  = sim.marginsense     || {};
+    const std = sim.standard_margin || {};
+    const unc = sim.uncertainty     || {};
+
+    // Metric cards
+    const cardsEl = document.getElementById('rpt-metric-cards');
+    cardsEl.innerHTML = '';
+    const cardDefs = [
+        { label: 'MarginSense CTV Volume', val: fmt(ms.infiltration_boundary_volume_cm3, 1), unit: 'cm³', sub: 'Predicted infiltration boundary', cls: 'ms' },
+        { label: 'Recurrence Coverage', val: fmt(ms.recurrence_coverage_percent, 1), unit: '%', sub: 'MarginSense vs. known recurrence', cls: 'ms' },
+        { label: 'Healthy Tissue Irradiated', val: fmt(ms.treated_healthy_tissue_volume_cm3, 0), unit: 'cm³', sub: 'MarginSense (outside GTV)', cls: 'ms' },
+        { label: 'Standard CTV Volume', val: fmt(std.infiltration_boundary_volume_cm3, 1), unit: 'cm³', sub: 'Uniform 1.5 cm margin', cls: '' },
+        { label: 'Standard Coverage', val: fmt(std.recurrence_coverage_percent, 1), unit: '%', sub: 'Standard vs. known recurrence', cls: '' },
+        { label: 'Standard Healthy Vol.', val: fmt(std.treated_healthy_tissue_volume_cm3, 0), unit: 'cm³', sub: 'Standard margin (outside GTV)', cls: '' },
+    ];
+    cardDefs.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'rpt-metric-card' + (c.cls ? ' ' + c.cls : '');
+        card.innerHTML = `
+            <div class="metric-label">${c.label}</div>
+            <div class="metric-val">${c.val} <span style="font-size:13px;font-weight:400">${c.unit}</span></div>
+            <div class="metric-sub">${c.sub}</div>
+        `;
+        cardsEl.appendChild(card);
+    });
+
+    // Comparison table
+    const tbody = document.getElementById('rpt-cmp-tbody');
+    tbody.innerHTML = '';
+    const methods = [
+        { label: 'MarginSense (Ensemble Amortized)', data: ms, cls: 'ms-row' },
+        { label: 'Clinical Standard (Uniform Margin)', data: std, cls: '' },
+    ];
+    methods.forEach(m => {
+        const tr = document.createElement('tr');
+        if (m.cls) tr.className = m.cls;
+        tr.innerHTML = `
+            <td>${m.label}</td>
+            <td>${fmt(m.data.processing_time_seconds, 2, 's')}</td>
+            <td>${fmt(m.data.recurrence_coverage_percent, 1, '%')}</td>
+            <td>${fmt(m.data.treated_healthy_tissue_volume_cm3, 0, ' cm³')}</td>
+            <td>${fmt(m.data.infiltration_boundary_volume_cm3, 1, ' cm³')}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Uncertainty summary (plain-language, deterministic from computed values)
+    const uncEl = document.getElementById('rpt-uncertainty-text');
+    if (unc.high_conf_pct !== null && unc.high_conf_pct !== undefined) {
+        const confPct = fmt(unc.high_conf_pct, 1);
+        const region  = unc.max_uncertainty_region || 'boundary region';
+        const meanStd = fmt(unc.mean_std_boundary,  4);
+        const maxStd  = fmt(unc.max_std,            4);
+        uncEl.innerHTML = `
+            <strong>High confidence across ${confPct}% of the predicted boundary</strong>
+            (voxels with ensemble std &lt; ${unc.uncertainty_threshold}).
+            Elevated uncertainty near <strong>${region}</strong> — consider additional imaging
+            or radiologist review in that zone. Mean boundary std: ${meanStd} · Max std: ${maxStd}.
+        `;
+    } else {
+        uncEl.textContent = 'Uncertainty data not available (run full pipeline including ensemble step).';
+    }
+
+    // ── Section 4: Visual Attachments ────────────────────────────────
+    // 3D snapshot from renderer (preserveDrawingBuffer must be true)
+    try {
+        const snap3d = renderer.domElement.toDataURL('image/png');
+        const img3d  = document.createElement('img');
+        img3d.src    = snap3d;
+        img3d.style.cssText = 'width:100%;display:block;background:#0c0c0e;';
+        const wrap3d = document.getElementById('rpt-3d-wrap');
+        wrap3d.innerHTML = '';
+        wrap3d.appendChild(img3d);
+    } catch (e) {
+        document.getElementById('rpt-3d-wrap').innerHTML =
+            '<div class="rpt-visual-placeholder">3D snapshot unavailable</div>';
+    }
+
+    // 2D axial slice at largest tumor cross-section
+    try {
+        const pid      = r.patient_id;
+        const infoResp = await fetch(`/api/slices/${pid}/info`);
+        if (infoResp.ok) {
+            const info     = await infoResp.json();
+            const bestZ    = info.default_z !== undefined ? info.default_z : 64;
+            const sliceResp = await fetch(`/api/slices/${pid}/0/${bestZ}?modality=2`);
+            if (sliceResp.ok) {
+                const sd = await sliceResp.json();
+                const W  = sd.width, H = sd.height;
+                const reportCanvas = document.createElement('canvas');
+                reportCanvas.width  = W;
+                reportCanvas.height = H;
+                const ctx = reportCanvas.getContext('2d');
+
+                // Draw grayscale image
+                const imgData = ctx.createImageData(W, H);
+                const pix     = sd.pixels;
+                for (let i = 0; i < pix.length; i++) {
+                    const v = pix[i];
+                    imgData.data[i*4]   = v;
+                    imgData.data[i*4+1] = v;
+                    imgData.data[i*4+2] = v;
+                    imgData.data[i*4+3] = 255;
+                }
+                ctx.putImageData(imgData, 0, 0);
+
+                // Draw contours
+                function drawContours(contours, color, lw) {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth   = lw;
+                    ctx.lineCap     = 'round';
+                    contours.forEach(poly => {
+                        if (!poly.length) return;
+                        ctx.beginPath();
+                        ctx.moveTo(poly[0][1], poly[0][0]);
+                        poly.slice(1).forEach(pt => ctx.lineTo(pt[1], pt[0]));
+                        ctx.closePath();
+                        ctx.stroke();
+                    });
+                }
+                const c = sd.contours || {};
+                drawContours(c.tumor   || [], '#ef4444', 1.5);  // red: GTV
+                drawContours(c.margin  || [], '#22d3ee', 1.5);  // cyan: standard CTV
+                drawContours(c.density || [], '#f59e0b', 1.5);  // amber: MarginSense CTV
+
+                reportCanvas.style.cssText = 'width:100%;display:block;image-rendering:pixelated;background:#0c0c0e;';
+                const sliceWrap = document.getElementById('rpt-slice-wrap');
+                sliceWrap.innerHTML = '';
+                sliceWrap.appendChild(reportCanvas);
+
+                // Add slice index label
+                const lbl = document.createElement('div');
+                lbl.style.cssText = 'font-size:9px;color:#94a3b8;padding:4px 8px;font-family:"IBM Plex Mono",monospace;background:#f8fafc;border-top:1px solid #e2e8f0;';
+                lbl.textContent   = `Axial slice z=${bestZ} · FLAIR · Both margins overlaid`;
+                sliceWrap.appendChild(lbl);
+            }
+        }
+    } catch (e) {
+        document.getElementById('rpt-slice-wrap').innerHTML =
+            '<div class="rpt-visual-placeholder">Slice unavailable — run pipeline first</div>';
+    }
+
+    // ── Section 5: Discussion Points ─────────────────────────────────
+    const discBody = document.getElementById('rpt-discussion-body');
+    discBody.innerHTML = '';
+
+    const flags   = r.discussion_flags   || [];
+    const caveats = r.quality_caveats    || [];
+
+    // Uncertainty hotspot flag
+    if (unc.high_conf_pct !== null && unc.high_conf_pct !== undefined) {
+        const fc = document.createElement('div');
+        fc.className = 'rpt-flag-card';
+        const lowConfPct = (100 - unc.high_conf_pct).toFixed(1);
+        fc.innerHTML = `
+            <div class="flag-type">Uncertainty Hotspot</div>
+            <div>${lowConfPct}% of the predicted boundary has elevated ensemble disagreement,
+            concentrated near the <strong>${unc.max_uncertainty_region}</strong>.
+            This zone may benefit from additional MR sequences or a second-look radiologist review
+            before any use in planning geometry.</div>
+        `;
+        discBody.appendChild(fc);
+    }
+
+    // Boundary deviation flags
+    flags.forEach(flag => {
+        const fc = document.createElement('div');
+        fc.className = 'rpt-flag-card';
+        const typeLabel = flag.type === 'ms_extends_beyond_standard'
+            ? 'MarginSense Extends Beyond Standard Margin'
+            : flag.type === 'standard_extends_beyond_ms'
+            ? 'Standard Margin Extends Beyond MarginSense Prediction'
+            : 'Deviation Analysis Flag';
+        const volHtml  = flag.volume_cm3 !== undefined
+            ? ` (~<span class="flag-vol">${fmt(flag.volume_cm3, 1)} cm³</span>, ${flag.region || ''})` : '';
+        fc.innerHTML = `<div class="flag-type">${typeLabel}${volHtml}</div><div>${flag.note}</div>`;
+        discBody.appendChild(fc);
+    });
+
+    // Data quality caveats
+    if (caveats.length > 0) {
+        const cavHead = document.createElement('div');
+        cavHead.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;font-family:"IBM Plex Mono",monospace;margin:14px 0 8px;';
+        cavHead.textContent   = 'Input Data Quality Caveats';
+        discBody.appendChild(cavHead);
+        const cavList = document.createElement('ul');
+        cavList.className = 'rpt-caveat-list';
+        caveats.forEach(c => {
+            const li = document.createElement('li');
+            li.textContent = c;
+            cavList.appendChild(li);
+        });
+        discBody.appendChild(cavList);
+    }
+
+    if (flags.length === 0 && caveats.length === 0 && (unc.high_conf_pct === null || unc.high_conf_pct === undefined)) {
+        discBody.innerHTML = '<div style="color:#64748b;font-style:italic;font-size:12px;">No flags generated — run the full pipeline to populate discussion points.</div>';
+    }
+}
+
+function exportReportPDF() {
+    window.print();
+}
+
+// updateMetrics: populates sidebar metrics table and reveals Generate Report button when data exists
+async function updateMetrics() {
+    const pid = document.getElementById('sel-patient').value;
+    try {
+        const resp = await fetch(`/api/comparison/${pid}`);
+        const data = await resp.json();
+        const tbody = document.querySelector('#tbl-comparison tbody');
+        tbody.innerHTML = '';
+        const keys = Object.keys(data.results || {});
+        keys.forEach(method => {
+            const r = data.results[method];
+            const tr = document.createElement('tr');
+            if (method.includes('MarginSense')) tr.classList.add('hl');
+            let short = method
+                .replace('Clinical Standard 1.5cm', 'Standard CTV')
+                .replace('Clinical Standard', 'Standard CTV')
+                .replace('Vanilla PINN (Per-Patient)', 'Vanilla PINN CTV')
+                .replace('MarginSense (Ensemble Amortized)', 'MarginSense CTV');
+            tr.innerHTML = `<td>${short}</td><td>${r.processing_time_seconds.toFixed(1)}s</td><td>${r.recurrence_coverage_percent.toFixed(1)}%</td><td>${r.treated_healthy_tissue_volume_cm3.toFixed(0)} cm³</td>`;
+            tbody.appendChild(tr);
+        });
+        if (keys.length > 0) {
+            document.getElementById('btn-generate-report').style.display = 'block';
+        }
+    } catch (_) {}
+}
+
 </script>
 </body>
 </html>

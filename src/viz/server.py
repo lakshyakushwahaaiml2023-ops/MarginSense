@@ -328,6 +328,226 @@ def get_comparison(patient_id):
             return jsonify(json.load(f))
     return jsonify({"error": "Report not found. Please click 'Run Radiotherapy Planning' first."}), 404
 
+
+@app.route("/api/generate_report/<patient_id>")
+def generate_report(patient_id):
+    """
+    Assembles a structured patient report entirely from computed pipeline outputs.
+    No free-form LLM generation — all fields are deterministically derived from
+    comparison_report.json, covariates JSON, and ensemble NPZ arrays.
+    """
+    report_path = f"outputs/{patient_id}_comparison_report.json"
+    if not os.path.exists(report_path):
+        return jsonify({"error": "Pipeline outputs not found. Run 'Run Target Planning' first."}), 404
+
+    with open(report_path, "r") as f:
+        comp = json.load(f)
+
+    # ── Covariates: detect which fields used literature defaults ─────────────
+    from src.preprocess_upload import default_covariates
+    defaults = default_covariates()
+    cov_path = f"data/processed/{patient_id}_covariates.json"
+    raw_cov = defaults.copy()
+    if os.path.exists(cov_path):
+        with open(cov_path, "r") as f:
+            raw_cov = json.load(f)
+
+    cov_keys = ["age", "kps", "idh_status", "mgmt_status", "resection_extent", "laterality"]
+    covariates_flagged = {}
+    for key in cov_keys:
+        val = raw_cov.get(key, defaults.get(key))
+        is_default = str(val) == str(defaults.get(key))
+        covariates_flagged[key] = {"value": val, "is_literature_default": is_default}
+
+    # ── Extract per-method metrics ───────────────────────────────────────────
+    results = comp.get("results", {})
+    ms_key  = next((k for k in results if "MarginSense" in k), None)
+    std_key = next((k for k in results if "Clinical Standard" in k or "Uniform" in k), None)
+    ms  = results.get(ms_key,  {}) if ms_key  else {}
+    std = results.get(std_key, {}) if std_key else {}
+    threshold = comp.get("threshold", 0.35)
+
+    # ── Uncertainty metrics from ensemble NPZ ────────────────────────────────
+    uncertainty_data = {
+        "high_conf_pct": None,
+        "mean_std_boundary": None,
+        "max_std": None,
+        "max_uncertainty_region": "boundary region (insufficient data)",
+        "uncertainty_threshold": 0.05
+    }
+
+    ensemble_path = f"outputs/{patient_id}_prediction_ensemble.npz"
+    if os.path.exists(ensemble_path):
+        try:
+            ens = np.load(ensemble_path)
+            mean_dens = ens["mean_density"]   # (128,128,128)
+            std_dens  = ens["std_density"]    # (128,128,128)
+            D, H, W   = mean_dens.shape
+
+            # Boundary band: ±0.1 around the density threshold
+            boundary_mask = (mean_dens >= threshold - 0.1) & (mean_dens <= threshold + 0.1)
+            conf_thresh = 0.05  # std < 0.05 → "high confidence"
+
+            if np.any(boundary_mask):
+                bdy_std = std_dens[boundary_mask]
+                high_conf_pct   = float(np.mean(bdy_std < conf_thresh) * 100.0)
+                mean_std_bdry   = float(np.mean(bdy_std))
+                max_std_val     = float(np.max(std_dens))
+
+                # Anatomical region of highest uncertainty on the boundary
+                pct90 = np.percentile(bdy_std, 90) if len(bdy_std) > 10 else bdy_std.max()
+                high_unc_mask   = boundary_mask & (std_dens >= pct90)
+
+                region_label = "boundary periphery"
+                if np.any(high_unc_mask):
+                    coords   = np.array(np.where(high_unc_mask)).T.astype(float)  # (N,3)
+                    centroid = coords.mean(axis=0)                                  # z, y, x
+                    devs = [abs(centroid[0] - D/2), abs(centroid[1] - H/2), abs(centroid[2] - W/2)]
+                    dom  = int(np.argmax(devs))
+                    if dom == 0:
+                        region_label = "superior margin" if centroid[0] > D/2 else "inferior margin"
+                    elif dom == 1:
+                        region_label = "anterior margin" if centroid[1] > H/2 else "posterior margin"
+                    else:
+                        region_label = "left hemisphere margin" if centroid[2] > W/2 else "right hemisphere margin"
+
+                uncertainty_data = {
+                    "high_conf_pct":          round(high_conf_pct, 1),
+                    "mean_std_boundary":      round(mean_std_bdry, 4),
+                    "max_std":                round(max_std_val, 4),
+                    "max_uncertainty_region": region_label,
+                    "uncertainty_threshold":  conf_thresh,
+                }
+        except Exception as e:
+            uncertainty_data["parse_error"] = str(e)
+
+    # ── Boundary deviation analysis (MarginSense vs. standard) ──────────────
+    discussion_flags = []
+    uniform_path = f"outputs/{patient_id}_baseline_uniform.npz"
+
+    if os.path.exists(uniform_path) and os.path.exists(ensemble_path):
+        try:
+            uni_data  = np.load(uniform_path)
+            uni_mask  = uni_data["dilated_mask"].astype(bool)
+            ens_data  = np.load(ensemble_path)
+            mean_dens = ens_data["mean_density"]
+            ens_mask  = (mean_dens >= threshold)
+
+            D, H, W = uni_mask.shape
+
+            def _region_label(mask):
+                if not np.any(mask):
+                    return "periphery"
+                coords   = np.array(np.where(mask)).T.astype(float)
+                centroid = coords.mean(axis=0)
+                devs = [abs(centroid[0]-D/2), abs(centroid[1]-H/2), abs(centroid[2]-W/2)]
+                dom  = int(np.argmax(devs))
+                if dom == 0:
+                    return "superior region" if centroid[0] > D/2 else "inferior region"
+                elif dom == 1:
+                    return "anterior region" if centroid[1] > H/2 else "posterior region"
+                else:
+                    return "left hemisphere" if centroid[2] > W/2 else "right hemisphere"
+
+            # Try to read voxel spacing from processed NPZ for accurate volume
+            voxel_vol = 1e-3  # default: 1mm³ → cm³
+            npz_proc = f"data/processed/{patient_id}.npz"
+            if os.path.exists(npz_proc):
+                try:
+                    proc = np.load(npz_proc)
+                    if "spacing" in proc:
+                        voxel_vol = float(np.prod(proc["spacing"])) / 1000.0
+                except Exception:
+                    pass
+
+            ms_only  = ens_mask & ~uni_mask
+            std_only = uni_mask & ~ens_mask
+
+            ms_ext_vol  = float(np.sum(ms_only))  * voxel_vol
+            std_ext_vol = float(np.sum(std_only)) * voxel_vol
+
+            if ms_ext_vol > 0.3:
+                region = _region_label(ms_only)
+                discussion_flags.append({
+                    "type":       "ms_extends_beyond_standard",
+                    "volume_cm3": round(ms_ext_vol, 2),
+                    "region":     region,
+                    "note": (
+                        f"MarginSense extends approximately {ms_ext_vol:.1f} cm\u00b3 beyond the "
+                        f"standard 1.5 cm uniform margin, concentrated in the {region}. "
+                        f"The model predicts infiltration density above threshold in this zone "
+                        f"that the fixed-margin approach does not cover. "
+                        f"Warrants independent radiologist review before any use in planning."
+                    )
+                })
+            if std_ext_vol > 0.3:
+                region = _region_label(std_only)
+                discussion_flags.append({
+                    "type":       "standard_extends_beyond_ms",
+                    "volume_cm3": round(std_ext_vol, 2),
+                    "region":     region,
+                    "note": (
+                        f"The standard margin covers approximately {std_ext_vol:.1f} cm\u00b3 that "
+                        f"MarginSense does not flag as high-density infiltration, concentrated in "
+                        f"the {region}. This zone may represent lower predicted infiltration risk "
+                        f"according to the model, but clinical judgment is required."
+                    )
+                })
+        except Exception as e:
+            discussion_flags.append({"type": "deviation_analysis_error", "note": str(e)})
+
+    # ── Data quality caveats ─────────────────────────────────────────────────
+    label_map = {
+        "age": "Patient age", "kps": "KPS score",
+        "idh_status": "IDH mutation status", "mgmt_status": "MGMT methylation status",
+        "resection_extent": "Extent of resection", "laterality": "Tumor laterality",
+    }
+    quality_caveats = []
+    for key, info in covariates_flagged.items():
+        if info["is_literature_default"]:
+            quality_caveats.append(
+                f"{label_map.get(key, key)} was not provided and used a literature default "
+                f"value ({info['value']}). Replace with actual patient data before clinical use."
+            )
+
+    # ── Assemble final report ────────────────────────────────────────────────
+    report = {
+        "generated_at":      datetime.datetime.now().isoformat(timespec="seconds"),
+        "patient_id":        patient_id,
+        "model_version":     "MarginSense Ensemble v1.0 (5-model amortized PINN)",
+        "imaging_sequences": ["T1", "T1ce (Gadolinium)", "T2", "FLAIR"],
+        "pipeline_threshold": threshold,
+        "covariates":        covariates_flagged,
+        "simulation": {
+            "marginsense": {
+                "infiltration_boundary_volume_cm3":   ms.get("total_target_volume_cm3"),
+                "recurrence_coverage_percent":        ms.get("recurrence_coverage_percent"),
+                "treated_healthy_tissue_volume_cm3":  ms.get("treated_healthy_tissue_volume_cm3"),
+                "processing_time_seconds":            ms.get("processing_time_seconds"),
+                "hardware":                           ms.get("hardware_device", "GPU"),
+            },
+            "standard_margin": {
+                "infiltration_boundary_volume_cm3":   std.get("total_target_volume_cm3"),
+                "recurrence_coverage_percent":        std.get("recurrence_coverage_percent"),
+                "treated_healthy_tissue_volume_cm3":  std.get("treated_healthy_tissue_volume_cm3"),
+                "processing_time_seconds":            std.get("processing_time_seconds"),
+                "hardware":                           std.get("hardware_device", "CPU"),
+            },
+            "recurrence_volume_cm3": comp.get("recurrence_volume_cm3"),
+            "uncertainty":           uncertainty_data,
+        },
+        "discussion_flags":  discussion_flags,
+        "quality_caveats":   quality_caveats,
+    }
+
+    # Persist to disk for subsequent loads
+    out_path = f"outputs/{patient_id}_patient_report.json"
+    os.makedirs("outputs", exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(report, f, indent=2)
+
+    return jsonify(report)
+
 @app.route("/api/training_curves")
 def training_curves():
     """Parses and serves model training metrics from the CSV logs."""

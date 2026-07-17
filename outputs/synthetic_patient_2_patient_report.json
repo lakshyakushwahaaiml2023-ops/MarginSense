@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-07-17T11:38:42",
+  "patient_id": "synthetic_patient_2",
+  "model_version": "MarginSense Ensemble v1.0 (5-model amortized PINN)",
+  "imaging_sequences": [
+    "T1",
+    "T1ce (Gadolinium)",
+    "T2",
+    "FLAIR"
+  ],
+  "pipeline_threshold": 0.35,
+  "covariates": {
+    "age": {
+      "value": 58,
+      "is_literature_default": true
+    },
+    "kps": {
+      "value": 80,
+      "is_literature_default": true
+    },
+    "idh_status": {
+      "value": "Wild-type",
+      "is_literature_default": true
+    },
+    "mgmt_status": {
+      "value": "Unmethylated",
+      "is_literature_default": true
+    },
+    "resection_extent": {
+      "value": "GTR",
+      "is_literature_default": true
+    },
+    "laterality": {
+      "value": "Left",
+      "is_literature_default": true
+    }
+  },
+  "simulation": {
+    "marginsense": {
+      "infiltration_boundary_volume_cm3": 201.50000957073644,
+      "recurrence_coverage_percent": 86.76618343619923,
+      "treated_healthy_tissue_volume_cm3": 160.58600762742572,
+      "processing_time_seconds": 6.316422600008082,
+      "hardware": "GPU (NVIDIA GeForce RTX 4050 Laptop GPU)"
+    },
+    "standard_margin": {
+      "infiltration_boundary_volume_cm3": 206.9310098286951,
+      "recurrence_coverage_percent": 100.0,
+      "treated_healthy_tissue_volume_cm3": 164.66600782121532,
+      "processing_time_seconds": 1.3206695999979274,
+      "hardware": "CPU (scipy EDT)"
+    },
+    "recurrence_volume_cm3": 48.7690023164032,
+    "uncertainty": {
+      "high_conf_pct": 0.0,
+      "mean_std_boundary": 0.2259,
+      "max_std": 0.3593,
+      "max_uncertainty_region": "inferior margin",
+      "uncertainty_threshold": 0.05
+    }
+  },
+  "discussion_flags": [
+    {
+      "type": "ms_extends_beyond_standard",
+      "volume_cm3": 65.64,
+      "region": "superior region",
+      "note": "MarginSense extends approximately 65.6 cm\u00b3 beyond the standard 1.5 cm uniform margin, concentrated in the superior region. The model predicts infiltration density above threshold in this zone that the fixed-margin approach does not cover. Warrants independent radiologist review before any use in planning."
+    },
+    {
+      "type": "standard_extends_beyond_ms",
+      "volume_cm3": 71.07,
+      "region": "anterior region",
+      "note": "The standard margin covers approximately 71.1 cm\u00b3 that MarginSense does not flag as high-density infiltration, concentrated in the anterior region. This zone may represent lower predicted infiltration risk according to the model, but clinical judgment is required."
+    }
+  ],
+  "quality_caveats": [
+    "Patient age was not provided and used a literature default value (58). Replace with actual patient data before clinical use.",
+    "KPS score was not provided and used a literature default value (80). Replace with actual patient data before clinical use.",
+    "IDH mutation status was not provided and used a literature default value (Wild-type). Replace with actual patient data before clinical use.",
+    "MGMT methylation status was not provided and used a literature default value (Unmethylated). Replace with actual patient data before clinical use.",
+    "Extent of resection was not provided and used a literature default value (GTR). Replace with actual patient data before clinical use.",
+    "Tumor laterality was not provided and used a literature default value (Left). Replace with actual patient data before clinical use."
+  ]
+}
