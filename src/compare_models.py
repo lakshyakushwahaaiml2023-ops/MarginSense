@@ -186,14 +186,14 @@ def main():
         report_data["results"][name] = entry
         
     # 5. Print Formatted ASCII Table
-    # ── SECTION A: Measured on our test set ──────────────────────────────────
+    # -- SECTION A: Measured on our test set ----------------------------------
     W = 105
     print("\n" + "="*W)
-    print(f"          [SECTION A] MEASURED ON OUR TEST SET — COMPARATIVE REPORT FOR {patient_id.upper()}")
+    print(f"          [SECTION A] MEASURED ON OUR TEST SET -- COMPARATIVE REPORT FOR {patient_id.upper()}")
     print("="*W)
     header_fmt = "{:<37} | {:<18} | {:<21} | {:<18}"
     row_fmt    = "{:<37} | {:<18} | {:<21} | {:<18.3f}"
-    print(header_fmt.format("Method", "Time (seconds)", "Recurrence Coverage", "Healthy Vol (cm³)"))
+    print(header_fmt.format("Method", "Time (seconds)", "Recurrence Coverage", "Healthy Vol (cm3)"))
     print(header_fmt.format("", "[wall-clock/patient]", "(higher is better)", "(lower is better)"))
     print("-" * W)
     
@@ -207,14 +207,14 @@ def main():
         print(row_fmt.format(name, t_str, f"{m_data['coverage']:.2f}%", m_data['healthy_spared_vol_cm3']))
     print("="*W)
 
-    # ── SECTION B: Literature Reference (NON-COMPARABLE) ─────────────────────
+    # -- SECTION B: Literature Reference (NON-COMPARABLE) ---------------------
     print("\n" + "-"*W)
-    print("  [SECTION B] LITERATURE REFERENCE ONLY — DIFFERENT COHORT — NOT DIRECTLY COMPARABLE")
+    print("  [SECTION B] LITERATURE REFERENCE ONLY -- DIFFERENT COHORT -- NOT DIRECTLY COMPARABLE")
     print("-"*W)
     print("  Source: Balcerak et al., Nature Communications 2025")
     print("  Cohort: N=152 glioblastoma patients (THEIR dataset, not our N=4 test set)")
-    print("  GliODIL paper-reported recurrence coverage improvement: ~64% → ~68% vs. standard margin")
-    print("  ⚠  These numbers cannot be compared to our N=4 reproduction — different patients, cohort, and setup.")
+    print("  GliODIL paper-reported recurrence coverage improvement: ~64% -> ~68% vs. standard margin")
+    print("  [Warning] These numbers cannot be compared to our N=4 reproduction -- different patients, cohort, and setup.")
     print("-"*W)
     
     # 6. Save JSON Report

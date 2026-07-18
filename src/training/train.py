@@ -153,7 +153,10 @@ def main():
         
     # 3. Load Patient Datasets
     processed_dir = "data/processed"
-    patient_files = [os.path.join(processed_dir, f) for f in os.listdir(processed_dir) if f.endswith(".npz")]
+    patient_files = [os.path.join(processed_dir, f) for f in os.listdir(processed_dir) 
+                     if f.startswith("brats_") and f.endswith(".npz")]
+    if not patient_files:
+        patient_files = [os.path.join(processed_dir, f) for f in os.listdir(processed_dir) if f.endswith(".npz")]
     
     if not patient_files:
         print("[-] No preprocessed patient files found in data/processed.")

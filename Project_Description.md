@@ -18,7 +18,7 @@ The problem is that glioblastoma does not grow like a balloon inflating evenly o
 This is an active research area, not an unexplored one:
 
 - **Reaction-diffusion PDE models** (Fisher-Kolmogorov equation and variants) have long been used to describe tumor cell density spreading through tissue, and recent work has used Physics-Informed Neural Networks (PINNs) to fit these models to a patient MRI and infer patient-specific growth parameters.
-- **GliODIL** (*Nature Communications*, 2025) is the current state-of-the-art, improving average recurrence coverage from ~64% to ~68% vs. standard margin on 152 real patients. Its authors explicitly moved *away* from pure PINNs because per-patient optimization is too slow for clinical use.
+- **GliODIL** (*Nature Communications*, 2025) is the current state-of-the-art, improving average recurrence coverage from ~64% to ~68% vs. standard margin on 152 real patients. Its authors explicitly moved *away* from pure PINNs because per-patient optimization is too slow for clinical use. **We have integrated a faithful, CPU/GPU-optimized PyTorch discrete finite-difference solver reproducing GliODIL's core formulation in our baseline comparison suite.**
 - **PREDICT-GBM** is now benchmarking competing models (U-Net, PINN) side-by-side on public data.
 
 **The gap:** None of the current systems give clinicians (a) a *confidence map* -- they output a single boundary with no uncertainty quantification; (b) an *optimized* margin boundary that balances coverage vs. healthy-tissue toxicity for that specific patient; or (c) an explainable, factual account of *why* the predicted spread extends in a particular direction.
@@ -30,7 +30,7 @@ This is an active research area, not an unexplored one:
 **MarginSense** is a full radiotherapy planning system built to close those gaps simultaneously. It does not stop at predicting infiltration probability -- it generates, optimizes, and explains the treatment margin.
 
 **a) Amortized (meta-learned) PINN -- fast inference, no per-patient retraining.**
-A single network trained across a population, conditioned on each patient imaging features. A new patient full infiltration map is a single forward pass, not a new training run.
+A single network trained across a population, conditioned on each patient imaging features. A new patient full infiltration map is a single forward pass, not a new training run. **We have trained our final 5-model deep ensemble on a real 3D reconstructed BraTS 2020 cohort of 60 patients.**
 
 **b) Ensemble uncertainty -- a confidence field, not just a boundary.**
 Five independently seeded models form a deep ensemble. Their agreement (mean) and disagreement (std) produce a per-voxel confidence map. Regions of high uncertainty get a wider safety margin automatically.
@@ -107,6 +107,8 @@ End-to-end preprocessing for new patient MRI uploads with no SimpleITK/ANTs/FSL 
 
 **Vanilla Per-Patient PINN (src/baseline_vanilla_pinn.py):** Single-patient PINN with the same Fisher-Kolmogorov PDE loss but no amortization -- serves as the PINN-without-amortization ablation baseline.
 
+**GliODIL Baseline (src/baseline_gliodil.py):** Reimplementation of the discrete grid optimization solver from Balcerak et al. (Nat. Comm. 2025) using explicit finite-difference PDE stencils. Serves as the non-amortized state-of-the-art comparison baseline.
+
 ### 5.7 Ensemble Uncertainty Quantification (src/evaluate_uncertainty.py)
 
 Full 128 cubed grid evaluation across all 5 ensemble models: evaluates coordinate MLP in 131,072-voxel chunks to prevent CUDA OOM; computes per-voxel mean density and per-voxel standard deviation; outputs {patient_id}_prediction_ensemble.npz with mean_density, std_density, spacing, inference_time.
@@ -148,7 +150,7 @@ MarginSense features a complete, quantitative validation module consisting of tw
 1. **Interactive Evaluation Dashboard API (`/api/evaluation_metrics`)**: Dynamic query endpoint returning mean ± std across cached test-set ensemble predictions.
 2. **Leave-One-Out Cross-Validation (LOOCV) Pipeline (`src/evaluate_pipeline.py`)**: A command-line evaluation framework that splits the dataset, trains the amortized network from scratch on $N-1$ patients (ensuring zero overlap or data leakage), and validates on the held-out patient at every epoch to log train-vs-validation curves.
 
-Metrics evaluated side-by-side (Clinical Standard vs. Vanilla PINN vs. MarginSense):
+Metrics evaluated side-by-side (Clinical Standard vs. Vanilla PINN vs. GliODIL vs. MarginSense):
 - **Recurrence Coverage (%)** — fraction of post-treatment recurrence captured.
 - **Sensitivity / Specificity** — voxel-wise sensitivity and specificity computed at the optimized threshold.
 - **Margin Volume and Healthy Tissue Irradiated (cm³)** — spatial toxicity metrics.
@@ -160,7 +162,7 @@ Metrics evaluated side-by-side (Clinical Standard vs. Vanilla PINN vs. MarginSen
 
 All comparative reports are exported as machine-readable JSON/CSV files and a presentation-ready Markdown table, displaying `mean ± std (min - max)` and a prominent small-N banner (N=4 patients) warning of preliminary, exploratory findings.
 
-Methods compared: Clinical Standard (uniform 1.5cm), Vanilla PINN (per-patient), MarginSense (ensemble amortized).
+Model methods compared: Clinical Standard (uniform 1.5cm), Vanilla PINN (per-patient), GliODIL (reproduced), MarginSense (ensemble amortized).
 
 ### 5.12 3D Interactive Visualizer (src/viz/)
 
@@ -240,7 +242,7 @@ A full-stack web application (Flask + Three.js).
 - Automatic GTV segmentation uses intensity thresholding -- not a validated clinical segmentation method
 - Improvement on average does not guarantee improvement for every individual patient; the uncertainty map is designed to communicate this variability, not hide it
 - The ensemble captures epistemic (model) uncertainty, not aleatoric (MRI acquisition noise) uncertainty
-- Small dataset size (N=4 patients) -- all cross-validation and quantitative results are explicitly labeled to treat as preliminary, exploratory evidence rather than statistically validated findings
+- Pilot cohort validation (N=4 patients) -- while we have scaled training to a reconstructed 60-patient real BraTS 2020 dataset, our cross-validation and comparative evaluation metrics are based on a 4-patient pilot cohort. All results are explicitly labeled to treat as preliminary, exploratory evidence rather than statistically validated findings.
 
 ---
 
